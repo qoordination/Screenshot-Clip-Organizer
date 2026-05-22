@@ -10,16 +10,11 @@ namespace SortMyClips
 {
     public class SortMyClipsSettings : ObservableObject
     {
-        private string option1 = string.Empty;
-        private bool option2 = false;
-        private bool optionThatWontBeSaved = false;
+        private string _unsortedPath = string.Empty;
 
-        public string Option1 { get => option1; set => SetValue(ref option1, value); }
-        public bool Option2 { get => option2; set => SetValue(ref option2, value); }
+        public string UnsortedPath { get => _unsortedPath; set => SetValue(ref _unsortedPath, value); }
         // Playnite serializes settings object to a JSON object and saves it as text file.
         // If you want to exclude some property from being saved then use `JsonDontSerialize` ignore attribute.
-        [DontSerialize]
-        public bool OptionThatWontBeSaved { get => optionThatWontBeSaved; set => SetValue(ref optionThatWontBeSaved, value); }
     }
 
     public class SortMyClipsSettingsViewModel : ObservableObject, ISettings
