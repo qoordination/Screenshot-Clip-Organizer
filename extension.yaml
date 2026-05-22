@@ -1,0 +1,7 @@
+﻿Id: SortMyClips_dfef3e4e-365c-474f-9a9c-5eaaadbc1d59
+Name: Generic Plugin
+Author: John Doe
+Version: 1.0
+Module: SortMyClips.dll
+Type: GenericPlugin
+Icon: icon.png
