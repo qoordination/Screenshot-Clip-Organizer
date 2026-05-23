@@ -4,6 +4,7 @@ using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,8 @@ namespace SortMyClips
         private static readonly ILogger logger = LogManager.GetLogger();
 
         private SortMyClipsSettingsViewModel settings { get; set; }
+        
+        private bool _emptyAtGameStart = false;
 
         public override Guid Id { get; } = Guid.Parse("dfef3e4e-365c-474f-9a9c-5eaaadbc1d59");
 
@@ -36,7 +39,8 @@ namespace SortMyClips
 
         public override void OnGameStarted(OnGameStartedEventArgs args)
         {
-            // Add code to be executed when game is started running.
+            _emptyAtGameStart = IsDirEmpty(settings.Settings.UnsortedPath);
+            logger.Info("Screenshot Dir is empty: " + _emptyAtGameStart);
         }
 
         public override void OnGameStarting(OnGameStartingEventArgs args)
@@ -49,44 +53,64 @@ namespace SortMyClips
             logger.Info("Game stopped: " + args.Game.Name);
             logger.Info("Unsorted path: " + settings.Settings.UnsortedPath);
 
-            if (!(IsDirEmpty(settings.Settings.UnsortedPath)))
+            if (_emptyAtGameStart)
             {
-                logger.Info("Is directory empty: " + IsDirEmpty(settings.Settings.UnsortedPath));
-                
-                string gameName = ReplaceInvalidChars(args.Game.Name);
-                logger.Info("Sanitized game name: " + gameName);
-                
-                string screenDir = settings.Settings.UnsortedPath + gameName + "\\"; 
-                logger.Info("Screen directory path: " + screenDir);
+                logger.Info("Directory was empty at game start, checking for new files...");
 
-                if (!Directory.Exists(screenDir))
+                if (!(IsDirEmpty(settings.Settings.UnsortedPath)))
                 {
-                    Directory.CreateDirectory(screenDir);
-                    logger.Info("Created screen directory: " + screenDir);
+                    logger.Info("Is directory empty: " + IsDirEmpty(settings.Settings.UnsortedPath));
+
+                    string gameName = ReplaceInvalidChars(args.Game.Name);
+                    logger.Info("Sanitized game name: " + gameName);
+
+                    string screenDir = settings.Settings.UnsortedPath + gameName + "\\";
+                    logger.Info("Screen directory path: " + screenDir);
+
+                    if (!Directory.Exists(screenDir))
+                    {
+                        Directory.CreateDirectory(screenDir);
+                        logger.Info("Created screen directory: " + screenDir);
+                    }
+                    else
+                    {
+                        logger.Info("Screen directory already exists: " + screenDir);
+                    }
+
+                    string[] files = Directory.GetFiles(settings.Settings.UnsortedPath);
+                    foreach (string s in files)
+                    {
+                        logger.Info("Found file: " + s);
+                        logger.Info("destination path: " + screenDir + "[" + gameName + "]" + File.GetCreationTime(s));
+                    }
+
+                    foreach (string file in files)
+                    {
+                        string creationTime = File.GetCreationTime(file).ToString("yyyy-MM-dd_HH-mm-ss");
+                        string type = Path.GetExtension(file);
+                        string fileName = "[" + gameName + "] " + creationTime + "." + type;
+                        
+                        if (!(File.Exists(screenDir + fileName)))
+                        {
+                            File.Move(file, screenDir + fileName);
+                            logger.Info("Moved and renamed " + file + " to " + screenDir);
+                        }
+                        else
+                        {
+                            logger.Info("File already exists at destination: " + screenDir + fileName);
+                        }
+                    }
                 }
                 else
                 {
-                    logger.Info("Screen directory already exists: " + screenDir);
-                }
-                
-                string[] files = Directory.GetFiles(settings.Settings.UnsortedPath);
-                foreach (string s in files) 
-                { 
-                    logger.Info("Found file: " + s); 
-                    logger.Info("source path: " + settings.Settings.UnsortedPath + "\\" + s);
-                    logger.Info("destination path: " + screenDir + s);
-                }
-                
-                foreach (string file in files)
-                {
-                    string fileName = file.Replace(settings.Settings.UnsortedPath, "");
-                    File.Move(file, screenDir + fileName);
-                    logger.Info("Moved " + file + " to " + screenDir);
+                    logger.Info("Is directory empty: " + IsDirEmpty(settings.Settings.UnsortedPath));
                 }
             }
             else
             {
-                logger.Info("Is directory empty: " + IsDirEmpty(settings.Settings.UnsortedPath));
+                logger.Info("Directory was not empty at game start, skipping...");
+                NotificationMessage msg = new NotificationMessage("SortMyClips", "[Screenshot & Clips Organizer]\nDirectory was not empty at game start", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
             }
         }
 
@@ -122,12 +146,13 @@ namespace SortMyClips
 
         public bool IsDirEmpty(string dir)
         {
-            return !Directory.EnumerateFileSystemEntries(dir).Any();
+            string[] files = Directory.GetFiles(dir);
+            return (files.Length == 0);
         }
 
         public string ReplaceInvalidChars(string filename)
         {
-            return string.Join("_", filename.Split(Path.GetInvalidFileNameChars()));
+            return string.Join(" ", filename.Split(Path.GetInvalidFileNameChars()));
         }
     }
 }
