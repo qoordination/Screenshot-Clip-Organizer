@@ -121,7 +121,18 @@ namespace SortMyClips
 
         public override void OnApplicationStarted(OnApplicationStartedEventArgs args)
         {
-            // Add code to be executed when Playnite is initialized.
+            if (settings.Settings.UnsortedPath == string.Empty)
+            {
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
+            else if (!IsDirEmpty(settings.Settings.UnsortedPath))
+            {
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not empty", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
         }
 
         public override void OnApplicationStopped(OnApplicationStoppedEventArgs args)
@@ -131,7 +142,12 @@ namespace SortMyClips
 
         public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args)
         {
-            // Add code to be executed when library is updated.
+            if (!IsDirEmpty(settings.Settings.UnsortedPath))
+            {
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not empty", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
         }
 
         public override ISettings GetSettings(bool firstRunSettings)

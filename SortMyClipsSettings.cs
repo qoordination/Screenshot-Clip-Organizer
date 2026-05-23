@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows;
+using Microsoft.Win32;
 
 namespace SortMyClips
 {
@@ -12,7 +14,12 @@ namespace SortMyClips
     {
         private string _unsortedPath = string.Empty;
 
-        public string UnsortedPath { get => _unsortedPath; set => SetValue(ref _unsortedPath, value); }
+        public string UnsortedPath
+        {
+            get => _unsortedPath;
+            set => SetValue(ref _unsortedPath, value);
+        }
+
         // Playnite serializes settings object to a JSON object and saves it as text file.
         // If you want to exclude some property from being saved then use `JsonDontSerialize` ignore attribute.
     }
@@ -23,6 +30,7 @@ namespace SortMyClips
         private SortMyClipsSettings editingClone { get; set; }
 
         private SortMyClipsSettings settings;
+
         public SortMyClipsSettings Settings
         {
             get => settings;
@@ -52,6 +60,18 @@ namespace SortMyClips
             }
         }
 
+        public RelayCommand<object> BrowseFolder
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
+                if (!string.IsNullOrWhiteSpace(chosenDir))
+                {
+                    Settings.UnsortedPath = chosenDir;
+                }
+            });
+        }
+    
         public void BeginEdit()
         {
             // Code executed when settings view is opened and user starts editing values.
