@@ -73,7 +73,7 @@ namespace SortMyClips
                 var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
                 if (!string.IsNullOrWhiteSpace(chosenDir))
                 {
-                    Settings.UnsortedPath = chosenDir;
+                    Settings.UnsortedPath = chosenDir + "\\";
                 }
             });
         }
