@@ -13,11 +13,17 @@ namespace SortMyClips
     public class SortMyClipsSettings : ObservableObject
     {
         private string _unsortedPath = string.Empty;
-
         public string UnsortedPath
         {
             get => _unsortedPath;
             set => SetValue(ref _unsortedPath, value);
+        }
+
+        private bool _screenshotsMovedCount = true;
+        public bool ScreenshotsMovedCount
+        {
+            get => _screenshotsMovedCount;
+            set => SetValue(ref _screenshotsMovedCount, value);
         }
 
         // Playnite serializes settings object to a JSON object and saves it as text file.

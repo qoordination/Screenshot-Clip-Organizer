@@ -11,5 +11,11 @@
         <TextBox Text="{Binding Path =Settings.UnsortedPath}"/>
         <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseFolder}"/>
         </Grid>
+        
+        <Grid>
+        <CheckBox IsChecked="{Binding Settings.ScreenshotsMovedCount}">
+        <TextBlock HorizontalAlignment="Right" Text="Notification for amount of files moved after game closed"></TextBlock>    
+        </CheckBox>
+        </Grid>
     </StackPanel>
 </UserControl>
