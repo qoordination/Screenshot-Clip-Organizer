@@ -97,7 +97,7 @@ namespace SortMyClips
                             logger.Error("Error deserializing JSON content: " + e);
                             continue;
                         }
-
+                        
                         if (obj.ContainsKey(args.Game.GameId))
                         {
                             _keyExists = true;

@@ -25,6 +25,13 @@ namespace SortMyClips
             get => _sortedPath;
             set => SetValue(ref _sortedPath, value);
         }
+        
+        private string _fileMode = "Move";
+        public string FileMode
+        {
+            get => _fileMode;
+            set => SetValue(ref _fileMode, value);
+        }
 
         private bool _screenshotsMovedCount = true;
         public bool ScreenshotsMovedCount

@@ -23,5 +23,7 @@
         <TextBlock HorizontalAlignment="Right" Text="Notification, if media was moved"></TextBlock>    
         </CheckBox>
         </Grid>
+        
+        
     </StackPanel>
 </UserControl>
