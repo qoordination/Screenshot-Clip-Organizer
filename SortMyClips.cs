@@ -22,6 +22,7 @@ namespace SortMyClips
 
         private int _filesMovedCount;
         private bool _otherFolderFound;
+        private bool _keyExists;
 
         private string[] _mediaExtensions =
             { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm" };
@@ -97,6 +98,12 @@ namespace SortMyClips
                             continue;
                         }
 
+                        if (obj.ContainsKey(args.Game.GameId))
+                        {
+                            _keyExists = true;
+                            logger.Info("Found game id in data json: " + args.Game.GameId);
+                        }
+
                         if (obj.ContainsKey(args.Game.GameId) && obj[args.Game.GameId] != gameName &&
                             Directory.Exists(Path.Combine(settings.Settings.SortedPath, obj[args.Game.GameId])))
                         {
@@ -112,6 +119,8 @@ namespace SortMyClips
                         }
                     }
 
+                    logger.Info("Key exists in JSON: " + _keyExists);
+                    logger.Info("Other folder with same game id found in JSON: " + _otherFolderFound);
                     // If the game doesn't have an entry in the JSON or if the folder name in the JSON matches the current game name, create a new entry and folder
                     if (!(_otherFolderFound))
                     {
@@ -119,8 +128,11 @@ namespace SortMyClips
                         data.Add(args.Game.GameId, gameName);
                         string jsonString =
                             JsonConvert.SerializeObject(data);
-                        File.AppendAllText(GetPluginUserDataPath() + "\\data.json", jsonString + "\n");
-                        logger.Info("Wrote game id to data json: " + gameName);
+                        if (!(_keyExists))
+                        {
+                            File.AppendAllText(GetPluginUserDataPath() + "\\data.json", jsonString + "\n");
+                            logger.Info("Wrote game id to data json: " + gameName);
+                        }
 
                         Directory.CreateDirectory(screenDir);
                         logger.Info("Created screen directory: " + screenDir);
@@ -246,6 +258,43 @@ namespace SortMyClips
                 PlayniteApi.Notifications.Add(msg);
             }
 
+            CreateDataJson();
+        }
+
+        public override void OnApplicationStopped(OnApplicationStoppedEventArgs args)
+        {
+            // Add code to be executed when Playnite is shutting down.
+        }
+
+        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args)
+        {
+            if (settings.Settings.UnsortedPath == string.Empty)
+            {
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
+            
+            CreateDataJson();
+        }
+
+        public override ISettings GetSettings(bool firstRunSettings)
+        {
+            return settings;
+        }
+
+        public override UserControl GetSettingsView(bool firstRunSettings)
+        {
+            return new SortMyClipsSettingsView();
+        }
+
+        public string ReplaceInvalidChars(string filename)
+        {
+            return string.Join(" ", filename.Split(Path.GetInvalidFileNameChars()));
+        }
+
+        public void CreateDataJson()
+        {
             // Check if data JSON exists, if not create and add all games. Used for folder naming and renaming purposes
             logger.Info("Data folder: " + GetPluginUserDataPath());
             logger.Info("Does data json exist:" + File.Exists(GetPluginUserDataPath() + "\\data.json"));
@@ -258,7 +307,6 @@ namespace SortMyClips
                 foreach (var game in PlayniteApi.Database.Games)
                 {
                     count++;
-                    logger.Info("Id: " + game.GameId + " Name: " + ReplaceInvalidChars(game.Name));
                     var data = new Dictionary<string, string>();
                     data.Add(game.GameId, ReplaceInvalidChars(game.Name));
                     string jsonString;
@@ -269,9 +317,10 @@ namespace SortMyClips
                     }
                     catch (Exception e)
                     {
-                        logger.Error("Error serializing JSON content: " + e);
+                        logger.Error("Error serializing JSON content of " + ReplaceInvalidChars(game.Name) + ":\n" + e);
                         continue;
                     }
+
                     sb.AppendLine(jsonString);
                 }
 
@@ -294,42 +343,6 @@ namespace SortMyClips
                     logger.Info("No games found in database to write to data json.");
                 }
             }
-        }
-
-        public override void OnApplicationStopped(OnApplicationStoppedEventArgs args)
-        {
-            // Add code to be executed when Playnite is shutting down.
-        }
-
-        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args)
-        {
-            if (settings.Settings.UnsortedPath == string.Empty)
-            {
-                NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
-                PlayniteApi.Notifications.Add(msg);
-            }
-        }
-
-        public override ISettings GetSettings(bool firstRunSettings)
-        {
-            return settings;
-        }
-
-        public override UserControl GetSettingsView(bool firstRunSettings)
-        {
-            return new SortMyClipsSettingsView();
-        }
-
-        public bool IsDirEmpty(string dir)
-        {
-            string[] files = Directory.GetFiles(dir);
-            return (files.Length == 0);
-        }
-
-        public string ReplaceInvalidChars(string filename)
-        {
-            return string.Join(" ", filename.Split(Path.GetInvalidFileNameChars()));
         }
     }
 }
