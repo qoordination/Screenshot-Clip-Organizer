@@ -344,5 +344,23 @@ namespace SortMyClips
                 }
             }
         }
+
+        public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs menuArgs)
+        {
+            yield return new MainMenuItem
+            {
+                Description = "Manually refresh Screenshot & Clips Organizer",
+                MenuSection = "@Screenshot & Clips Organizer",
+                Action = args =>
+                {
+                    File.Delete(GetPluginUserDataPath() + "\\data.json");
+                    CreateDataJson();
+                    logger.Info("Manually refreshed data json.");
+                    NotificationMessage msg = new NotificationMessage("SortMyClips",
+                        "[Screenshot & Clips Organizer]\nManually refreshed game data", NotificationType.Info);
+                    PlayniteApi.Notifications.Add(msg);
+                }
+            };
+        }
     }
 }
