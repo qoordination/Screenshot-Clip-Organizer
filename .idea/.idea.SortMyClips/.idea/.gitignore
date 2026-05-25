@@ -13,3 +13,10 @@
 /dataSources.local.xml
 # Editor-based HTTP Client requests
 /httpRequests/
+
+bin/
+dist/
+obj/
+tmp/
+vendor/
+*.sln
