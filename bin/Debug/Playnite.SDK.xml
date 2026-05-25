@@ -5957,6 +5957,11 @@
             Called when gamepad/controller is disconnected.
             </summary>
         </member>
+        <member name="M:Playnite.SDK.Plugins.Plugin.OnFullscreenViewChanged(Playnite.SDK.Events.OnFullscreenViewChangedArgs)">
+            <summary>
+            Called when fullscreen view changes from list to game details and vice versa.
+            </summary>
+        </member>
         <member name="M:Playnite.SDK.Plugins.Plugin.GetGameMenuItems(Playnite.SDK.Plugins.GetGameMenuItemsArgs)">
             <summary>
             Gets list of items to be displayed in game's context menu.
@@ -7505,6 +7510,11 @@
         <member name="P:Playnite.SDK.WebViewSettings.PassResourceContentStreamToCallback">
             <summary>
             Gets or sets a value indicating whether response content strema should be passed to resource load callback.
+            </summary>
+        </member>
+        <member name="P:Playnite.SDK.WebViewSettings.ShouldPassResourceContentFunc">
+            <summary>
+            If set, resource content will be read only the function returns true.
             </summary>
         </member>
         <member name="T:Playnite.SDK.JavaScriptEvaluationResult">

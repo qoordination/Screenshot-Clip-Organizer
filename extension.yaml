@@ -6,7 +6,5 @@ Module: SortMyClips.dll
 Type: GenericPlugin
 Icon: icon.png
 Links: 
-  -GitHub: https://github.com/qoordination/Screenshot-Clip-Organizer
-Tags: ["qoordination", "Screenshot", "Clip", "Organizer", "Sort", "Management", "Media"]
-ShortDescription: Organize screenshots and clips per game.
-SourceUrl: https://github.com/qoordination/Screenshot-Clip-Organizer 
+-Name: GitHub
+-Url: https://github.com/qoordination/Screenshot-Clip-Organizer

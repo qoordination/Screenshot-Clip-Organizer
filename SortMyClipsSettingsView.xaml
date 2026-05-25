@@ -6,15 +6,21 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
     <StackPanel Margin = "10">
-        <TextBlock Text="Path of unsorted Clips:"/>
+        <TextBlock Text="Unsorted media path:"/>
         <Grid>
         <TextBox Text="{Binding Path =Settings.UnsortedPath}"/>
-        <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseFolder}"/>
+        <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseUnsortedFolder}"/>
+        </Grid>
+        
+        <TextBlock Text="Sorting target path:"/>
+        <Grid>
+            <TextBox Text="{Binding Path =Settings.SortedPath}"/>
+            <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseSortedFolder}"/>
         </Grid>
         
         <Grid>
         <CheckBox IsChecked="{Binding Settings.ScreenshotsMovedCount}">
-        <TextBlock HorizontalAlignment="Right" Text="Notification for amount of files moved after game closed"></TextBlock>    
+        <TextBlock HorizontalAlignment="Right" Text="Notification of amount of files moved after game closed"></TextBlock>    
         </CheckBox>
         </Grid>
     </StackPanel>

@@ -19,6 +19,13 @@ namespace SortMyClips
             set => SetValue(ref _unsortedPath, value);
         }
 
+        private string _sortedPath = string.Empty;
+        public string  SortedPath
+        {
+            get => _sortedPath;
+            set => SetValue(ref _sortedPath, value);
+        }
+
         private bool _screenshotsMovedCount = true;
         public bool ScreenshotsMovedCount
         {
@@ -66,7 +73,7 @@ namespace SortMyClips
             }
         }
 
-        public RelayCommand<object> BrowseFolder
+        public RelayCommand<object> BrowseUnsortedFolder
         {
             get => new RelayCommand<object>((a) =>
             {
@@ -74,6 +81,23 @@ namespace SortMyClips
                 if (!string.IsNullOrWhiteSpace(chosenDir))
                 {
                     Settings.UnsortedPath = chosenDir + "\\";
+                }
+
+                if (Settings.SortedPath == string.Empty)
+                {
+                    Settings.SortedPath = Settings.UnsortedPath;
+                }
+            });
+        }
+    
+        public RelayCommand<object> BrowseSortedFolder
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
+                if (!string.IsNullOrWhiteSpace(chosenDir))
+                {
+                    Settings.SortedPath = chosenDir + "\\";
                 }
             });
         }

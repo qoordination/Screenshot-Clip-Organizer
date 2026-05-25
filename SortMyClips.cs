@@ -5,16 +5,12 @@ using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Diagnostics.Contracts;
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Xml;
+using Newtonsoft.Json;
 
 namespace SortMyClips
 {
@@ -64,147 +60,175 @@ namespace SortMyClips
             logger.Info("Unsorted path: " + settings.Settings.UnsortedPath);
             logger.Info("File Moved Count setting: " + settings.Settings.ScreenshotsMovedCount);
 
-            logger.Info("Is directory empty: " + IsDirEmpty(settings.Settings.UnsortedPath));
-
-            // Sanitize game name to remove invalid characters for file paths
-            string gameName = ReplaceInvalidChars(args.Game.Name);
-            logger.Info("Sanitized game name: " + gameName);
-
-            string screenDir = settings.Settings.UnsortedPath + gameName + "\\";
-            logger.Info("Screen directory path: " + screenDir);
-
-            string[] newDirState = Directory.GetFiles(settings.Settings.UnsortedPath);
-            string[] newFiles = newDirState.Except(_initialDirState).ToArray();
-
-            // If no new files are found, exit method
-            if (newFiles.Length == 0)
+            if ((settings.Settings.UnsortedPath != string.Empty && settings.Settings.SortedPath != string.Empty))
             {
-                logger.Info("No new files found in unsorted directory.");
-                return;
-            }
+                // Sanitize game name to remove invalid characters for file paths
+                string gameName = ReplaceInvalidChars(args.Game.Name);
+                logger.Info("Sanitized game name: " + gameName);
 
-            if (!Directory.Exists(screenDir))
-            {
-                // Check if gameId is in JSON and match the JSON game name with the current game name. Rename folder and update JSON, if not matching.
-                string[] jsonContent = File.ReadAllLines(GetPluginUserDataPath() + "\\data.json");
-                for (int i = 0; i < jsonContent.Length; i++)
+                string screenDir = settings.Settings.SortedPath + gameName + "\\";
+                logger.Info("Screen directory path: " + screenDir);
+
+                // Get list of new files in unsorted dir, compared to initial game start state
+                string[] newDirState = Directory.GetFiles(settings.Settings.UnsortedPath);
+                string[] newFiles = newDirState.Except(_initialDirState).ToArray();
+
+                // If no new files are found, exit method
+                if (newFiles.Length == 0)
                 {
-                    var obj = JsonSerializer.Deserialize<Dictionary<string, string>>(jsonContent[i]);
-                    if (obj.ContainsKey(args.Game.GameId) && obj[args.Game.GameId] != gameName &&
-                        Directory.Exists(Path.Combine(settings.Settings.UnsortedPath, obj[args.Game.GameId])))
-                    {
-                        _otherFolderFound = true;
-                        Directory.Move(settings.Settings.UnsortedPath + obj[args.Game.GameId], screenDir);
-                        logger.Info("Renamed existing game folder from " + obj[args.Game.GameId] + " to " + gameName);
-                        obj[args.Game.GameId] = gameName;
-                        jsonContent[i] = JsonSerializer.Serialize(obj);
-                        File.WriteAllLines(GetPluginUserDataPath() + "\\data.json", jsonContent);
-                        break;
-                    }
+                    logger.Info("No new files found in unsorted directory.");
+                    return;
                 }
 
-                // If the game doesn't have an entry in the JSON or if the folder name in the JSON matches the current game name, create a new entry and folder
-                if (!(_otherFolderFound))
+                if (!Directory.Exists(screenDir))
                 {
-                    var data = new Dictionary<string, string>();
-                    data.Add(args.Game.GameId, gameName);
-                    string jsonString =
-                        JsonSerializer.Serialize(data);
-                    File.AppendAllText(GetPluginUserDataPath() + "\\data.json", jsonString + "\n");
-                    logger.Info("Wrote game id to data json: " + gameName);
-
-                    Directory.CreateDirectory(screenDir);
-                    logger.Info("Created screen directory: " + screenDir);
-                }
-            }
-            else
-            {
-                logger.Info("Screen directory already exists: " + screenDir);
-            }
-
-            // Set up message box options for handling non-media files
-            bool moveAllFiles = false;
-            var yes = new MessageBoxOption("Yes", false, false);
-            var no = new MessageBoxOption("No", true, false);
-            var yesForAll = new MessageBoxOption("Yes (for all)", false, false);
-            var noForAll = new MessageBoxOption("No (for all)", false, false);
-            var options = new List<MessageBoxOption> { };
-            options.Add(yes);
-            options.Add(no);
-            options.Add(yesForAll);
-            options.Add(noForAll);
-
-            foreach (string file in newFiles)
-            {
-                logger.Info("Found file: " + file);
-                logger.Info(
-                    "destination path: " + screenDir + "[" + gameName + "]" + File.GetCreationTime(file));
-
-                // Generate new file name based on game and creation time, keep original file extension
-                string creationTime = File.GetCreationTime(file).ToString("yyyy-MM-dd_HH-mm-ss");
-                string type = Path.GetExtension(file);
-                string fileName = "[" + gameName + "] " + creationTime + type;
-
-                //Potentially illegal file found 
-                if (!(_mediaExtensions.Contains(type)))
-                {
-                    if (!moveAllFiles)
+                    // Check if gameId is in JSON and match the JSON game name with the current game name. Rename folder and update JSON, if not matching.
+                    string[] jsonContent = File.ReadAllLines(GetPluginUserDataPath() + "\\data.json");
+                    for (int i = 0; i < jsonContent.Length; i++)
                     {
-                        MessageBoxOption illegalFilesPrompt;
-                        logger.Info("Potential Non-Media File found: " + file);
-
-                        illegalFilesPrompt = PlayniteApi.Dialogs.ShowMessage(
-                            "Potential Non-Media File found: " + file +
-                            "\nAre you sure you want to move this file?", "",
-                            MessageBoxImage.Warning, options);
-
-                        if (illegalFilesPrompt == yes)
+                        Dictionary<string, string> obj;
+                        try
                         {
-                            logger.Info("User chose to move this file: " + file);
+                            obj = JsonConvert.DeserializeObject<Dictionary<string,string>>(jsonContent[i]);
                         }
-                        else if (illegalFilesPrompt == no)
+                        catch (Exception e)
                         {
-                            logger.Info("User chose to skip this file: " + file);
+                            logger.Error("Error deserializing JSON content: " + e);
                             continue;
                         }
 
-                        else if (illegalFilesPrompt == noForAll)
+                        if (obj.ContainsKey(args.Game.GameId) && obj[args.Game.GameId] != gameName &&
+                            Directory.Exists(Path.Combine(settings.Settings.SortedPath, obj[args.Game.GameId])))
                         {
-                            logger.Info("User chose to skip all non-media files.");
+                            _otherFolderFound = true;
+                            Directory.Move(Path.Combine(settings.Settings.SortedPath, obj[args.Game.GameId]),
+                                screenDir);
+                            logger.Info(
+                                "Renamed existing game folder from " + obj[args.Game.GameId] + " to " + gameName);
+                            obj[args.Game.GameId] = gameName;
+                            jsonContent[i] = JsonConvert.SerializeObject(obj);
+                            File.WriteAllLines(GetPluginUserDataPath() + "\\data.json", jsonContent);
                             break;
                         }
-                        else if (illegalFilesPrompt == yesForAll)
-                        {
-                            logger.Info("User chose to move all files, including non-media files.");
-                            moveAllFiles = true;
-                        }
                     }
-                }
 
-                // Move if file doesn't already exist at destination
-                if (!(File.Exists(screenDir + fileName)))
-                {
-                    File.Move(file, screenDir + fileName);
-                    logger.Info("Moved and renamed " + file + " to " + screenDir);
-                    _filesMovedCount++;
+                    // If the game doesn't have an entry in the JSON or if the folder name in the JSON matches the current game name, create a new entry and folder
+                    if (!(_otherFolderFound))
+                    {
+                        var data = new Dictionary<string, string>();
+                        data.Add(args.Game.GameId, gameName);
+                        string jsonString =
+                            JsonConvert.SerializeObject(data);
+                        File.AppendAllText(GetPluginUserDataPath() + "\\data.json", jsonString + "\n");
+                        logger.Info("Wrote game id to data json: " + gameName);
+
+                        Directory.CreateDirectory(screenDir);
+                        logger.Info("Created screen directory: " + screenDir);
+                    }
                 }
                 else
                 {
-                    logger.Info("File already exists at destination: " + screenDir + fileName);
+                    logger.Info("Screen directory already exists: " + screenDir);
                 }
-            }
 
-            // If wished, display notification of how many files were moved, with option to open folder
-            if (_filesMovedCount > 0 && settings.Settings.ScreenshotsMovedCount)
+                // Set up message box options for handling non-media files
+                bool moveAllFiles = false;
+                var yes = new MessageBoxOption("Yes", false, false);
+                var no = new MessageBoxOption("No", true, false);
+                var yesForAll = new MessageBoxOption("Yes (for all following)", false, false);
+                var noForAll = new MessageBoxOption("No (for all following)", false, false);
+                var options = new List<MessageBoxOption> { };
+                options.Add(yes);
+                options.Add(no);
+                options.Add(yesForAll);
+                options.Add(noForAll);
+
+                foreach (string file in newFiles)
+                {
+                    logger.Info("Found file: " + file);
+                    logger.Info(
+                        "destination path: " + screenDir + "[" + gameName + "]" + File.GetCreationTime(file));
+
+                    // Generate new file name based on game and creation time, keep original file extension
+                    string creationTime = File.GetCreationTime(file).ToString("yyyy-MM-dd_HH-mm-ss");
+                    string type = Path.GetExtension(file);
+                    string fileName = "[" + gameName + "] " + creationTime + type;
+
+                    //Potentially illegal file found 
+                    if (!(_mediaExtensions.Contains(type)))
+                    {
+                        if (!moveAllFiles)
+                        {
+                            MessageBoxOption illegalFilesPrompt;
+                            logger.Info("Potential Non-Media File found: " + file);
+
+                            illegalFilesPrompt = PlayniteApi.Dialogs.ShowMessage(
+                                "Potential Non-Media File found: " + file +
+                                "\nAre you sure you want to move this file?", "",
+                                MessageBoxImage.Warning, options);
+
+                            if (illegalFilesPrompt == yes)
+                            {
+                                logger.Info("User chose to move this file: " + file);
+                            }
+                            else if (illegalFilesPrompt == no)
+                            {
+                                logger.Info("User chose to skip this file: " + file);
+                                continue;
+                            }
+
+                            else if (illegalFilesPrompt == noForAll)
+                            {
+                                logger.Info("User chose to skip all non-media files.");
+                                break;
+                            }
+                            else if (illegalFilesPrompt == yesForAll)
+                            {
+                                logger.Info("User chose to move all files, including non-media files.");
+                                moveAllFiles = true;
+                            }
+                        }
+                    }
+
+                    // Move if file doesn't already exist at destination
+                    if (!(File.Exists(screenDir + fileName)))
+                    {
+                        File.Move(file, screenDir + fileName);
+                        logger.Info("Moved and renamed " + file + " to " + screenDir + fileName);
+                        _filesMovedCount++;
+                    }
+                    else
+                    {
+                        logger.Info("File already exists at destination: " + screenDir + fileName);
+                    }
+                }
+
+                // If wished, display notification of how many files were moved, with option to open folder
+                if (_filesMovedCount > 0 && settings.Settings.ScreenshotsMovedCount)
+                {
+                    Action openFolderAction = () => Process.Start("explorer.exe", screenDir);
+                    NotificationMessage msg = new NotificationMessage("SortMyClips",
+                        "[Screenshot & Clips Organizer]\nMoved " + _filesMovedCount + " file(s) to " + gameName +
+                        " folder\nClick to open", NotificationType.Info, openFolderAction);
+                    PlayniteApi.Notifications.Add(msg);
+                }
+
+                _filesMovedCount = 0;
+            }
+            else if (settings.Settings.UnsortedPath == string.Empty)
             {
-                Action openFolderAction = () => Process.Start("explorer.exe", screenDir);
+                logger.Info("Screenshot directory not set.");
                 NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nMoved " + _filesMovedCount + " file(s) to " + gameName +
-                    " folder\nClick to open", NotificationType.Info, openFolderAction);
+                    "[Screenshot & Clips Organizer]\nUnsorted source directory is not set, could not move media.", NotificationType.Error);
                 PlayniteApi.Notifications.Add(msg);
             }
-
-            _filesMovedCount = 0;
+            else if (settings.Settings.SortedPath == string.Empty)
+            {
+                logger.Info("Sorted directory not set.");
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nSorting target directory is not set, could not move media.", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
         }
 
         public override void OnGameUninstalled(OnGameUninstalledEventArgs args)
@@ -228,7 +252,7 @@ namespace SortMyClips
             if (!File.Exists(GetPluginUserDataPath() + "\\data.json"))
             {
                 logger.Info("Creating data json file.");
-                
+
                 var sb = new StringBuilder();
                 int count = 0;
                 foreach (var game in PlayniteApi.Database.Games)
@@ -237,8 +261,17 @@ namespace SortMyClips
                     logger.Info("Id: " + game.GameId + " Name: " + ReplaceInvalidChars(game.Name));
                     var data = new Dictionary<string, string>();
                     data.Add(game.GameId, ReplaceInvalidChars(game.Name));
-                    string jsonString =
-                        JsonSerializer.Serialize(data);
+                    string jsonString;
+                    try
+                    {
+                        jsonString =
+                            JsonConvert.SerializeObject(data);
+                    }
+                    catch (Exception e)
+                    {
+                        logger.Error("Error serializing JSON content: " + e);
+                        continue;
+                    }
                     sb.AppendLine(jsonString);
                 }
 
@@ -260,7 +293,6 @@ namespace SortMyClips
                 {
                     logger.Info("No games found in database to write to data json.");
                 }
-                logger.Info("Got here!");
             }
         }
 
