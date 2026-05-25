@@ -347,6 +347,7 @@ namespace SortMyClips
 
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs menuArgs)
         {
+            // Option for manual refresh of data JSON
             yield return new MainMenuItem
             {
                 Description = "Manually refresh Screenshot & Clips Organizer",
