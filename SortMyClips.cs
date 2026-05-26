@@ -1,6 +1,5 @@
 ﻿using Playnite.SDK;
 using Playnite.SDK.Events;
-using Playnite.SDK.Models;
 using Playnite.SDK.Plugins;
 using System;
 using System.Collections.Generic;
@@ -27,7 +26,7 @@ namespace SortMyClips
         private string[] _mediaExtensions =
             { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm" };
 
-        private string[] _initialDirState;
+        private string[] _initialDirState = {string.Empty};
 
         public override Guid Id { get; } = Guid.Parse("dfef3e4e-365c-474f-9a9c-5eaaadbc1d59");
 
@@ -45,33 +44,22 @@ namespace SortMyClips
             // Add code to be executed when game is finished installing.
         }
 
-        // TODO : Own method for steam screenshot state and potential other folders with same game id, to avoid code repetition in game stopped and game started events
-        // TODO : Implement steam screenshot in game stopped
         public override void OnGameStarted(OnGameStartedEventArgs args)
         {
-            _initialDirState = Directory.GetFiles(settings.Settings.UnsortedPath);
-            if (settings.Settings.SortSteam)
+            logger.Info("Unsorted Directory Paths:" + settings.Settings.UnsortedPath.Length);
+            foreach (string unsortedPath in settings.Settings.UnsortedPath)
             {
-                string steamUserDataPath = Path.Combine(settings.Settings.SteamPath, "userdata");
-                if (Directory.Exists(steamUserDataPath))
+                try
                 {
-                    string[] userFolders = Directory.GetDirectories(steamUserDataPath);
-                    string[] steamScreenshots = new string[] {};
-                    foreach (string userFolder in userFolders)
-                    {
-                        if (Directory.Exists(Path.Combine(userFolder, "760", "remote")))
-                        {
-                            steamScreenshots = Directory.GetFiles(Path.Combine(userFolder, "760", "remote"), "*.*", SearchOption.AllDirectories);
-                        }
-                    }
-                    _initialDirState = _initialDirState.Concat(steamScreenshots).ToArray();
+                    _initialDirState = _initialDirState
+                        .Concat(Directory.GetFiles(unsortedPath, "*.*", SearchOption.AllDirectories)).ToArray();
+                }
+                catch (Exception e)
+                {
+                    logger.Info("Error accessing unsorted directory: " + unsortedPath + "\n" + e);
                 }
             }
-
-            foreach (string file in _initialDirState)
-            {
-                logger.Info("Initial file: " + file);
-            }
+            logger.Info("New state: "  + _initialDirState.Length);
         }
 
         public override void OnGameStarting(OnGameStartingEventArgs args)
@@ -81,49 +69,53 @@ namespace SortMyClips
 
         public override void OnGameStopped(OnGameStoppedEventArgs args)
         {
-            logger.Info("Game stopped: " + args.Game.Name);
-            logger.Info("Unsorted path: " + settings.Settings.UnsortedPath);
-            logger.Info("File Moved Count setting: " + settings.Settings.ScreenshotsMovedCount);
-
-            if ((settings.Settings.UnsortedPath != string.Empty && settings.Settings.SortedPath != string.Empty))
+            string[] newDirState = {string.Empty};
+            foreach (string unsortedPath in settings.Settings.UnsortedPath)
             {
-                // Sanitize game name to remove invalid characters for file paths
-                string gameName = ReplaceInvalidChars(args.Game.Name);
-                logger.Info("Sanitized game name: " + gameName);
+                logger.Info("Game stopped: " + args.Game.Name);
+                logger.Info("Unsorted path: " + unsortedPath);
+                logger.Info("File Moved Count setting: " + settings.Settings.ScreenshotsMovedCount);
 
-                string screenDir = Path.Combine(settings.Settings.SortedPath, gameName);
-                logger.Info("Screen directory path: " + screenDir);
-
-                // Get list of new files in unsorted dir, compared to initial game start state
-                string[] newDirState = Directory.GetFiles(settings.Settings.UnsortedPath);
-                string[] newFiles = newDirState.Except(_initialDirState).ToArray();
-
-                // If no new files are found, exit method
-                if (newFiles.Length == 0)
+                if ((unsortedPath != string.Empty && settings.Settings.SortedPath != string.Empty))
                 {
-                    logger.Info("No new files found in unsorted directory.");
-                    return;
+                    // Sanitize game name to remove invalid characters for file paths
+                    string gameName = ReplaceInvalidChars(args.Game.Name);
+                    logger.Info("Sanitized game name: " + gameName);
+
+                    string screenDir = Path.Combine(settings.Settings.SortedPath, gameName) + "\\";
+                    logger.Info("Screen directory path: " + screenDir);
+
+                    // Get list of new files in unsorted dir, compared to initial game start state
+                    newDirState = newDirState.Concat(Directory.GetFiles(unsortedPath, "*.*", SearchOption.AllDirectories)).ToArray();
+                    string[] newFiles = newDirState.Except(_initialDirState).ToArray();
+
+                    // If no new files are found, exit method
+                    if (newFiles.Length == 0)
+                    {
+                        logger.Info("No new files found in unsorted directory.");
+                        continue;
+                    }
+
+                    SetupFolder(gameName, screenDir, args);
+
+                    MoveFiles(screenDir, newFiles, gameName);
                 }
-
-                SetupFolder(gameName, screenDir, args);
-
-                MoveFiles(screenDir, newFiles, gameName);
-            }
-            else if (settings.Settings.UnsortedPath == string.Empty)
-            {
-                logger.Info("Screenshot directory not set.");
-                NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nUnsorted source directory is not set, could not move media.",
-                    NotificationType.Error);
-                PlayniteApi.Notifications.Add(msg);
-            }
-            else if (settings.Settings.SortedPath == string.Empty)
-            {
-                logger.Info("Sorted directory not set.");
-                NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nSorting target directory is not set, could not move media.",
-                    NotificationType.Error);
-                PlayniteApi.Notifications.Add(msg);
+                else if (unsortedPath == string.Empty)
+                {
+                    logger.Info("Screenshot directory not set.");
+                    NotificationMessage msg = new NotificationMessage("SortMyClips",
+                        "[Screenshot & Clips Organizer]\nUnsorted source directory is not set, could not move media.",
+                        NotificationType.Error);
+                    PlayniteApi.Notifications.Add(msg);
+                }
+                else if (settings.Settings.SortedPath == string.Empty)
+                {
+                    logger.Info("Sorted directory not set.");
+                    NotificationMessage msg = new NotificationMessage("SortMyClips",
+                        "[Screenshot & Clips Organizer]\nSorting target directory is not set, could not move media.",
+                        NotificationType.Error);
+                    PlayniteApi.Notifications.Add(msg);
+                }
             }
         }
 
@@ -134,11 +126,18 @@ namespace SortMyClips
 
         public override void OnApplicationStarted(OnApplicationStartedEventArgs args)
         {
-            if (settings.Settings.UnsortedPath == string.Empty)
+            if (settings.Settings.UnsortedPath == Array.Empty<string>())
             {
-                logger.Info("Screenshot directory not set.");
+                logger.Info("No screenshot directory set.");
                 NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
+                    "[Screenshot & Clips Organizer]\nNo screenshot directory is set", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            } else if (settings.Settings.SortedPath == string.Empty)
+            {
+                logger.Info("Sorted directory not set.");
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nSorting target directory is not set.",
+                    NotificationType.Error);
                 PlayniteApi.Notifications.Add(msg);
             }
 
@@ -152,13 +151,20 @@ namespace SortMyClips
 
         public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args)
         {
-            if (settings.Settings.UnsortedPath == string.Empty)
+            if (settings.Settings.UnsortedPath == Array.Empty<string>())
             {
+                logger.Info("No screenshot directory set.");
                 NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
+                    "[Screenshot & Clips Organizer]\nNo screenshot directory is set", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            } else if (settings.Settings.SortedPath == string.Empty)
+            {
+                logger.Info("Sorted directory not set.");
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nSorting target directory is not set.",
+                    NotificationType.Error);
                 PlayniteApi.Notifications.Add(msg);
             }
-
             CreateDataJson();
         }
 
@@ -174,7 +180,7 @@ namespace SortMyClips
 
         public string ReplaceInvalidChars(string filename)
         {
-            return string.Join(" ", filename.Split(Path.GetInvalidFileNameChars()));
+            return string.Concat(filename.Split(Path.GetInvalidFileNameChars()));
         }
 
         public void MoveFiles (string screenDir, string[] newFiles, string gameName)

@@ -7,24 +7,28 @@
              d:DesignHeight="400" d:DesignWidth="600">
     <StackPanel Margin="10">
         <TextBlock Text="Unsorted media path:" />
-        <Grid>
-            <TextBox Text="{Binding Path =Settings.UnsortedPath}" />
-            <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseUnsortedFolder}" />
-        </Grid>
+        <StackPanel Orientation="Horizontal">
+            <TextBox Width="300" Text="{Binding Path =Settings.UnsortedPathInput}" />
+            <Button Width ="40" Margin="5, 0" Content="🗁" Command="{Binding BrowseUnsortedFolder}" />
+            <Button Width ="40" Margin="5, 0" Content="+" Command="{Binding AddUnsortedFolder}"/>
+            <Button Width="104" Margin="5, 0" Content="Clear Paths" Command="{Binding ClearPaths}"/>
+        </StackPanel>
 
         <TextBlock Text="Sorting target path:" Margin="0 10 0 0" />
-        <Grid>
-            <TextBox Text="{Binding Path =Settings.SortedPath}" />
-            <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseSortedFolder}" />
-        </Grid>
+        <StackPanel Orientation="Horizontal">
+            <TextBox Width="300" Text="{Binding Path =Settings.SortedPath}" />
+            <Button Width ="40" Margin="5, 0" Content="🗁" Command="{Binding BrowseSortedFolder}" />
+        </StackPanel>
 
-        <Grid Margin="0 10 0 0">
-            <CheckBox IsChecked="{Binding Settings.SortSteam}">
-                <TextBlock HorizontalAlignment="Right" Text="Sort Steam game media"></TextBlock>
-            </CheckBox>
-        </Grid>
+        <TextBlock Text="Add supported platforms paths:" Margin="0 10 0 0" />
+        <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
+            <Button Width="80" Content="Steam" Command="{Binding AddSteamPath}"/>
+        </StackPanel>
 
-        <Separator Margin = "0 10 0 10"/>
+        <Separator Margin = "0 10 0 0"/>
+        <TextBlock Margin="0, 5" Text="Currently tracked unsorted folders:"/>
+        <TextBlock Margin="10 5" Text="{Binding Settings.UnsortedPathString}"/>
+        <Separator/>
         
         <Grid Margin="0 10 0 0">
             <CheckBox IsChecked="{Binding Settings.ScreenshotsMovedCount}">

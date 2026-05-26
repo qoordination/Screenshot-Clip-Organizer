@@ -2,52 +2,65 @@
 using Playnite.SDK.Data;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows;
 using Microsoft.Win32;
 
 namespace SortMyClips
 {
     public class SortMyClipsSettings : ObservableObject
     {
-        private string _unsortedPath = string.Empty;
-        public string UnsortedPath
+        private string[] _unsortedPaths = Array.Empty<string>();
+
+        public string[] UnsortedPath
         {
-            get => _unsortedPath;
-            set => SetValue(ref _unsortedPath, value);
+            get => _unsortedPaths;
+            set => SetValue(ref _unsortedPaths, value);
+        }
+
+        private string _unsortedPathString = string.Empty;
+
+        public string UnsortedPathString
+        {
+            get => _unsortedPathString;
+            set => SetValue(ref _unsortedPathString, value);
+        }
+
+        private string _unsortedPathInput = string.Empty;
+
+        public string UnsortedPathInput
+        {
+            get => _unsortedPathInput;
+            set => SetValue(ref _unsortedPathInput, value);
         }
 
         private string _sortedPath = string.Empty;
-        public string  SortedPath
+
+        public string SortedPath
         {
             get => _sortedPath;
             set => SetValue(ref _sortedPath, value);
         }
-        
+
         private bool _fileModeCopy;
+
         public bool FileModeCopy
         {
             get => _fileModeCopy;
             set => SetValue(ref _fileModeCopy, value);
         }
-        
-        private string _steamPath = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null) as string;
+
+        private string _steamPath =
+            (Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null) as string);
+
         public string SteamPath
         {
             get => _steamPath;
             set => SetValue(ref _steamPath, value);
         }
 
-        private bool _sortSteam = false;
-        public bool SortSteam
-        {
-            get => _sortSteam;
-            set => SetValue(ref _sortSteam, value);
-        }
-
         private bool _screenshotsMovedCount = true;
+
         public bool ScreenshotsMovedCount
         {
             get => _screenshotsMovedCount;
@@ -60,6 +73,7 @@ namespace SortMyClips
 
     public class SortMyClipsSettingsViewModel : ObservableObject, ISettings
     {
+        private readonly ILogger logger = LogManager.GetLogger();
         private readonly SortMyClips plugin;
         private SortMyClipsSettings editingClone { get; set; }
 
@@ -101,16 +115,16 @@ namespace SortMyClips
                 var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
                 if (!string.IsNullOrWhiteSpace(chosenDir))
                 {
-                    Settings.UnsortedPath = chosenDir + "\\";
+                    Settings.UnsortedPathInput = chosenDir + "\\";
                 }
 
                 if (Settings.SortedPath == string.Empty)
                 {
-                    Settings.SortedPath = Settings.UnsortedPath;
+                    Settings.SortedPath = Settings.UnsortedPathInput;
                 }
             });
         }
-    
+
         public RelayCommand<object> BrowseSortedFolder
         {
             get => new RelayCommand<object>((a) =>
@@ -122,7 +136,89 @@ namespace SortMyClips
                 }
             });
         }
-    
+
+        public RelayCommand<object> AddUnsortedFolder
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                if (!string.IsNullOrWhiteSpace(Settings.UnsortedPathInput) &&
+                    Directory.Exists(Settings.UnsortedPathInput))
+                {
+                    if (!Settings.UnsortedPath.Contains(Settings.UnsortedPathInput))
+                    {
+                        var paths = Settings.UnsortedPath.ToList();
+                        paths.Add(Settings.UnsortedPathInput);
+                        Settings.UnsortedPath = paths.ToArray();
+                        logger.Info("Added unsorted path: " + Settings.UnsortedPathInput);
+                        Settings.UnsortedPathString = string.Join(Environment.NewLine, Settings.UnsortedPath);
+                        Settings.UnsortedPathInput = string.Empty;
+                    }
+                    else
+                    {
+                        plugin.PlayniteApi.Dialogs.ShowMessage("This path is already added.");
+                    }
+                }
+                else
+                {
+                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid path before adding.");
+                }
+            });
+        }
+
+        public RelayCommand<object> ClearPaths
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                Settings.UnsortedPath = Array.Empty<string>();
+                Settings.UnsortedPathString = string.Empty;
+                logger.Info("Cleared unsorted paths.");
+            });
+        }
+
+        public RelayCommand<object> AddSteamPath
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                string steamUserDataPath = Path.Combine(Settings.SteamPath.Replace("/", "\\"), "userdata");
+                if (Directory.Exists(steamUserDataPath))
+                {
+                    string[] userFolders = Directory.GetDirectories(steamUserDataPath);
+                    if (userFolders.Length > 0)
+                    {
+                        foreach (string userFolder in userFolders)
+                        {
+                            if (Directory.Exists(Path.Combine(userFolder, "760", "remote") + "\\") &&
+                                !(Settings.UnsortedPath.Contains(Path.Combine(userFolder, "760", "remote") + "\\")))
+                            {
+                                var paths = Settings.UnsortedPath.ToList();
+                                paths.Add(Path.Combine(userFolder, "760", "remote") + "\\");
+                                Settings.UnsortedPath = paths.ToArray();
+                                logger.Info("Added steam path: " + Path.Combine(userFolder, "760", "remote") + "\\");
+                            }
+                            else
+                            {
+                                logger.Info(
+                                    "Already added or no valid steam screenshots folder found in: " + userFolder);
+                                plugin.PlayniteApi.Dialogs.ShowMessage("Steam path is already added or not valid.\n" +
+                                                                       Path.Combine(userFolder, "760", "remote") +
+                                                                       "\\");
+                            }
+                        }
+                        var newPaths = string.Empty;
+                        foreach (string path in Settings.UnsortedPath)
+                        {
+                            newPaths = Environment.NewLine + path + Environment.NewLine;
+                        }
+                        Settings.UnsortedPathString += newPaths;
+                    }
+                    else
+                    {
+                        plugin.PlayniteApi.Dialogs.ShowMessage("Could not find any valid steam folders.");
+                    }
+                }
+            });
+        }
+
         public void BeginEdit()
         {
             // Code executed when settings view is opened and user starts editing values.
