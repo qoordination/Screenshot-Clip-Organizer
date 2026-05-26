@@ -5,25 +5,38 @@
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
-    <StackPanel Margin = "10">
-        <TextBlock Text="Unsorted media path:"/>
+    <StackPanel Margin="10">
+        <TextBlock Text="Unsorted media path:" />
         <Grid>
-        <TextBox Text="{Binding Path =Settings.UnsortedPath}"/>
-        <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseUnsortedFolder}"/>
+            <TextBox Text="{Binding Path =Settings.UnsortedPath}" />
+            <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseUnsortedFolder}" />
         </Grid>
-        
-        <TextBlock Text="Sorting target path:" Margin = "0 10 0 0"/>
+
+        <TextBlock Text="Sorting target path:" Margin="0 10 0 0" />
         <Grid>
-            <TextBox Text="{Binding Path =Settings.SortedPath}"/>
-            <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseSortedFolder}"/>
+            <TextBox Text="{Binding Path =Settings.SortedPath}" />
+            <Button HorizontalAlignment="Right" Content="🗁" Command="{Binding BrowseSortedFolder}" />
         </Grid>
-        
-        <Grid Margin = "0 10 0 0">
-        <CheckBox IsChecked="{Binding Settings.ScreenshotsMovedCount}">
-        <TextBlock HorizontalAlignment="Right" Text="Notification, if media was moved"></TextBlock>    
-        </CheckBox>
+
+        <Grid Margin="0 10 0 0">
+            <CheckBox IsChecked="{Binding Settings.SortSteam}">
+                <TextBlock HorizontalAlignment="Right" Text="Sort Steam game media"></TextBlock>
+            </CheckBox>
         </Grid>
+
+        <Separator Margin = "0 10 0 10"/>
         
-        
+        <Grid Margin="0 10 0 0">
+            <CheckBox IsChecked="{Binding Settings.ScreenshotsMovedCount}">
+                <TextBlock HorizontalAlignment="Right" Text="Notification, if media was moved"></TextBlock>
+            </CheckBox>
+        </Grid>
+
+        <Grid Margin="0 10 0 0">
+            <CheckBox IsChecked="{Binding Settings.FileModeCopy}">
+                <TextBlock HorizontalAlignment="Right" Text="Copy files, instead of moving (Creates Duplicates!)"></TextBlock>
+            </CheckBox>
+        </Grid>
+
     </StackPanel>
 </UserControl>

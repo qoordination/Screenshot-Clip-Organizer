@@ -26,11 +26,25 @@ namespace SortMyClips
             set => SetValue(ref _sortedPath, value);
         }
         
-        private string _fileMode = "Move";
-        public string FileMode
+        private bool _fileModeCopy;
+        public bool FileModeCopy
         {
-            get => _fileMode;
-            set => SetValue(ref _fileMode, value);
+            get => _fileModeCopy;
+            set => SetValue(ref _fileModeCopy, value);
+        }
+        
+        private string _steamPath = Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null) as string;
+        public string SteamPath
+        {
+            get => _steamPath;
+            set => SetValue(ref _steamPath, value);
+        }
+
+        private bool _sortSteam = false;
+        public bool SortSteam
+        {
+            get => _sortSteam;
+            set => SetValue(ref _sortSteam, value);
         }
 
         private bool _screenshotsMovedCount = true;

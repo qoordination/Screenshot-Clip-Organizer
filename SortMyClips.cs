@@ -45,9 +45,33 @@ namespace SortMyClips
             // Add code to be executed when game is finished installing.
         }
 
+        // TODO : Own method for steam screenshot state and potential other folders with same game id, to avoid code repetition in game stopped and game started events
+        // TODO : Implement steam screenshot in game stopped
         public override void OnGameStarted(OnGameStartedEventArgs args)
         {
             _initialDirState = Directory.GetFiles(settings.Settings.UnsortedPath);
+            if (settings.Settings.SortSteam)
+            {
+                string steamUserDataPath = Path.Combine(settings.Settings.SteamPath, "userdata");
+                if (Directory.Exists(steamUserDataPath))
+                {
+                    string[] userFolders = Directory.GetDirectories(steamUserDataPath);
+                    string[] steamScreenshots = new string[] {};
+                    foreach (string userFolder in userFolders)
+                    {
+                        if (Directory.Exists(Path.Combine(userFolder, "760", "remote")))
+                        {
+                            steamScreenshots = Directory.GetFiles(Path.Combine(userFolder, "760", "remote"), "*.*", SearchOption.AllDirectories);
+                        }
+                    }
+                    _initialDirState = _initialDirState.Concat(steamScreenshots).ToArray();
+                }
+            }
+
+            foreach (string file in _initialDirState)
+            {
+                logger.Info("Initial file: " + file);
+            }
         }
 
         public override void OnGameStarting(OnGameStartingEventArgs args)
@@ -67,7 +91,7 @@ namespace SortMyClips
                 string gameName = ReplaceInvalidChars(args.Game.Name);
                 logger.Info("Sanitized game name: " + gameName);
 
-                string screenDir = settings.Settings.SortedPath + gameName + "\\";
+                string screenDir = Path.Combine(settings.Settings.SortedPath, gameName);
                 logger.Info("Screen directory path: " + screenDir);
 
                 // Get list of new files in unsorted dir, compared to initial game start state
@@ -81,68 +105,80 @@ namespace SortMyClips
                     return;
                 }
 
-                if (!Directory.Exists(screenDir))
-                {
-                    // Check if gameId is in JSON and match the JSON game name with the current game name. Rename folder and update JSON, if not matching.
-                    string[] jsonContent = File.ReadAllLines(GetPluginUserDataPath() + "\\data.json");
-                    for (int i = 0; i < jsonContent.Length; i++)
-                    {
-                        Dictionary<string, string> obj;
-                        try
-                        {
-                            obj = JsonConvert.DeserializeObject<Dictionary<string,string>>(jsonContent[i]);
-                        }
-                        catch (Exception e)
-                        {
-                            logger.Error("Error deserializing JSON content: " + e);
-                            continue;
-                        }
-                        
-                        if (obj.ContainsKey(args.Game.GameId))
-                        {
-                            _keyExists = true;
-                            logger.Info("Found game id in data json: " + args.Game.GameId);
-                        }
+                SetupFolder(gameName, screenDir, args);
 
-                        if (obj.ContainsKey(args.Game.GameId) && obj[args.Game.GameId] != gameName &&
-                            Directory.Exists(Path.Combine(settings.Settings.SortedPath, obj[args.Game.GameId])))
-                        {
-                            _otherFolderFound = true;
-                            Directory.Move(Path.Combine(settings.Settings.SortedPath, obj[args.Game.GameId]),
-                                screenDir);
-                            logger.Info(
-                                "Renamed existing game folder from " + obj[args.Game.GameId] + " to " + gameName);
-                            obj[args.Game.GameId] = gameName;
-                            jsonContent[i] = JsonConvert.SerializeObject(obj);
-                            File.WriteAllLines(GetPluginUserDataPath() + "\\data.json", jsonContent);
-                            break;
-                        }
-                    }
+                MoveFiles(screenDir, newFiles, gameName);
+            }
+            else if (settings.Settings.UnsortedPath == string.Empty)
+            {
+                logger.Info("Screenshot directory not set.");
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nUnsorted source directory is not set, could not move media.",
+                    NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
+            else if (settings.Settings.SortedPath == string.Empty)
+            {
+                logger.Info("Sorted directory not set.");
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nSorting target directory is not set, could not move media.",
+                    NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
+        }
 
-                    logger.Info("Key exists in JSON: " + _keyExists);
-                    logger.Info("Other folder with same game id found in JSON: " + _otherFolderFound);
-                    // If the game doesn't have an entry in the JSON or if the folder name in the JSON matches the current game name, create a new entry and folder
-                    if (!(_otherFolderFound))
-                    {
-                        var data = new Dictionary<string, string>();
-                        data.Add(args.Game.GameId, gameName);
-                        string jsonString =
-                            JsonConvert.SerializeObject(data);
-                        if (!(_keyExists))
-                        {
-                            File.AppendAllText(GetPluginUserDataPath() + "\\data.json", jsonString + "\n");
-                            logger.Info("Wrote game id to data json: " + gameName);
-                        }
+        public override void OnGameUninstalled(OnGameUninstalledEventArgs args)
+        {
+            // Add code to be executed when game is uninstalled.
+        }
 
-                        Directory.CreateDirectory(screenDir);
-                        logger.Info("Created screen directory: " + screenDir);
-                    }
-                }
-                else
-                {
-                    logger.Info("Screen directory already exists: " + screenDir);
-                }
+        public override void OnApplicationStarted(OnApplicationStartedEventArgs args)
+        {
+            if (settings.Settings.UnsortedPath == string.Empty)
+            {
+                logger.Info("Screenshot directory not set.");
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
 
+            CreateDataJson();
+        }
+
+        public override void OnApplicationStopped(OnApplicationStoppedEventArgs args)
+        {
+            // Add code to be executed when Playnite is shutting down.
+        }
+
+        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args)
+        {
+            if (settings.Settings.UnsortedPath == string.Empty)
+            {
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
+
+            CreateDataJson();
+        }
+
+        public override ISettings GetSettings(bool firstRunSettings)
+        {
+            return settings;
+        }
+
+        public override UserControl GetSettingsView(bool firstRunSettings)
+        {
+            return new SortMyClipsSettingsView();
+        }
+
+        public string ReplaceInvalidChars(string filename)
+        {
+            return string.Join(" ", filename.Split(Path.GetInvalidFileNameChars()));
+        }
+
+        public void MoveFiles (string screenDir, string[] newFiles, string gameName)
+        {
                 // Set up message box options for handling non-media files
                 bool moveAllFiles = false;
                 var yes = new MessageBoxOption("Yes", false, false);
@@ -188,7 +224,6 @@ namespace SortMyClips
                                 logger.Info("User chose to skip this file: " + file);
                                 continue;
                             }
-
                             else if (illegalFilesPrompt == noForAll)
                             {
                                 logger.Info("User chose to skip all non-media files.");
@@ -205,16 +240,24 @@ namespace SortMyClips
                     // Move if file doesn't already exist at destination
                     if (!(File.Exists(screenDir + fileName)))
                     {
-                        File.Move(file, screenDir + fileName);
-                        logger.Info("Moved and renamed " + file + " to " + screenDir + fileName);
-                        _filesMovedCount++;
+                        if (settings.Settings.FileModeCopy)
+                        {
+                            File.Copy(file, screenDir + fileName);
+                            logger.Info("Copied and renamed " + file + " to " + screenDir + fileName);
+                        }
+                        else
+                        {
+                            File.Move(file, screenDir + fileName);
+                            logger.Info("Moved and renamed " + file + " to " + screenDir + fileName);
+                            _filesMovedCount++;
+                        }
                     }
                     else
                     {
                         logger.Info("File already exists at destination: " + screenDir + fileName);
                     }
                 }
-
+                
                 // If wished, display notification of how many files were moved, with option to open folder
                 if (_filesMovedCount > 0 && settings.Settings.ScreenshotsMovedCount)
                 {
@@ -226,71 +269,71 @@ namespace SortMyClips
                 }
 
                 _filesMovedCount = 0;
-            }
-            else if (settings.Settings.UnsortedPath == string.Empty)
-            {
-                logger.Info("Screenshot directory not set.");
-                NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nUnsorted source directory is not set, could not move media.", NotificationType.Error);
-                PlayniteApi.Notifications.Add(msg);
-            }
-            else if (settings.Settings.SortedPath == string.Empty)
-            {
-                logger.Info("Sorted directory not set.");
-                NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nSorting target directory is not set, could not move media.", NotificationType.Error);
-                PlayniteApi.Notifications.Add(msg);
-            }
         }
-
-        public override void OnGameUninstalled(OnGameUninstalledEventArgs args)
-        {
-            // Add code to be executed when game is uninstalled.
-        }
-
-        public override void OnApplicationStarted(OnApplicationStartedEventArgs args)
-        {
-            if (settings.Settings.UnsortedPath == string.Empty)
-            {
-                logger.Info("Screenshot directory not set.");
-                NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
-                PlayniteApi.Notifications.Add(msg);
-            }
-
-            CreateDataJson();
-        }
-
-        public override void OnApplicationStopped(OnApplicationStoppedEventArgs args)
-        {
-            // Add code to be executed when Playnite is shutting down.
-        }
-
-        public override void OnLibraryUpdated(OnLibraryUpdatedEventArgs args)
-        {
-            if (settings.Settings.UnsortedPath == string.Empty)
-            {
-                NotificationMessage msg = new NotificationMessage("SortMyClips",
-                    "[Screenshot & Clips Organizer]\nScreenshot Directory is not set", NotificationType.Error);
-                PlayniteApi.Notifications.Add(msg);
-            }
             
-            CreateDataJson();
-        }
-
-        public override ISettings GetSettings(bool firstRunSettings)
+        // Check if folder for game already exists, if not create it. If folder with same game id but different name exists, rename it to match current game name and update JSON
+        public void SetupFolder(string gameName, string screenDir, OnGameStoppedEventArgs args)
         {
-            return settings;
-        }
+                if (!Directory.Exists(screenDir))
+                {
+                    string[] jsonContent = File.ReadAllLines(GetPluginUserDataPath() + "\\data.json");
+                    for (int i = 0; i < jsonContent.Length; i++)
+                    {
+                        Dictionary<string, string> obj;
+                        try
+                        {
+                            obj = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonContent[i]);
+                        }
+                        catch (Exception e)
+                        {
+                            logger.Error("Error deserializing JSON content: " + e);
+                            continue;
+                        }
 
-        public override UserControl GetSettingsView(bool firstRunSettings)
-        {
-            return new SortMyClipsSettingsView();
-        }
+                        if (obj.ContainsKey(args.Game.GameId))
+                        {
+                            _keyExists = true;
+                            logger.Info("Found game id in data json: " + args.Game.GameId);
+                        }
 
-        public string ReplaceInvalidChars(string filename)
-        {
-            return string.Join(" ", filename.Split(Path.GetInvalidFileNameChars()));
+                        if (obj.ContainsKey(args.Game.GameId) && obj[args.Game.GameId] != gameName &&
+                            Directory.Exists(Path.Combine(settings.Settings.SortedPath, obj[args.Game.GameId])))
+                        {
+                            _otherFolderFound = true;
+                            Directory.Move(Path.Combine(settings.Settings.SortedPath, obj[args.Game.GameId]),
+                                screenDir);
+                            logger.Info(
+                                "Renamed existing game folder from " + obj[args.Game.GameId] + " to " + gameName);
+                            obj[args.Game.GameId] = gameName;
+                            jsonContent[i] = JsonConvert.SerializeObject(obj);
+                            File.WriteAllLines(GetPluginUserDataPath() + "\\data.json", jsonContent);
+                            break;
+                        }
+                    }
+
+                    logger.Info("Key exists in JSON: " + _keyExists);
+                    logger.Info("Other folder with same game id found in JSON: " + _otherFolderFound);
+                    // If the game doesn't have an entry in the JSON or if the folder name in the JSON matches the current game name, create a new entry and folder
+                    if (!(_otherFolderFound))
+                    {
+                        var data = new Dictionary<string, string>();
+                        data.Add(args.Game.GameId, gameName);
+                        string jsonString =
+                            JsonConvert.SerializeObject(data);
+                        if (!(_keyExists))
+                        {
+                            File.AppendAllText(GetPluginUserDataPath() + "\\data.json", jsonString + "\n");
+                            logger.Info("Wrote game id to data json: " + gameName);
+                        }
+
+                        Directory.CreateDirectory(screenDir);
+                        logger.Info("Created screen directory: " + screenDir);
+                    }
+                }
+                else
+                {
+                    logger.Info("Screen directory already exists: " + screenDir);
+                }
         }
 
         public void CreateDataJson()
@@ -345,6 +388,7 @@ namespace SortMyClips
             }
         }
 
+        // Manual refresh menu option
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs menuArgs)
         {
             // Option for manual refresh of data JSON
@@ -360,6 +404,27 @@ namespace SortMyClips
                     NotificationMessage msg = new NotificationMessage("SortMyClips",
                         "[Screenshot & Clips Organizer]\nManually refreshed game data", NotificationType.Info);
                     PlayniteApi.Notifications.Add(msg);
+                }
+            };
+            
+            yield return new MainMenuItem
+            {
+                Description = "Open sorted game media folder",
+                MenuSection = "@Screenshot & Clips Organizer",
+                Action = args =>
+                {
+                    if (settings.Settings.SortedPath != string.Empty)
+                    {
+                        Process.Start("explorer.exe", settings.Settings.SortedPath);
+                    }
+                    else
+                    {
+                        logger.Info("Sorted directory not set.");
+                        NotificationMessage msg = new NotificationMessage("SortMyClips",
+                            "[Screenshot & Clips Organizer]\nSorting target directory is not set, could not open folder.",
+                            NotificationType.Error);
+                        PlayniteApi.Notifications.Add(msg);
+                    }
                 }
             };
         }
