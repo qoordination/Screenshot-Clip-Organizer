@@ -1,4 +1,4 @@
-AddonId: Screenshot_Clips_Organizer
+AddonId: Screenshot_Clip_Organizer
 Type: Generic
 IconUrl: https://raw.githubusercontent.com/qoordination/Screenshot-Clip-Organizer/main/icon.png
 Name: Screenshot & Clips Organizer
@@ -9,6 +9,6 @@ Links:
     GitHub (Source code): https://github.com/qoordination/Screenshot-Clip-Organizer
     Playnite Discord: "https://discord.gg/XjVdF8jPfv"
     Issues: https://github.com/qoordination/Screenshot-Clip-Organizer/issues
-InstallerManifestUrl: https://raw.githubusercontent.com/qoordination/Screenshot-Clip-Organizer/main/Manifests/PackageInstaller/Screenshots_Clips_Organizer.yaml
+InstallerManifestUrl: https://raw.githubusercontent.com/qoordination/Screenshot-Clip-Organizer/main/Manifests/PackageInstaller/Screenshot_Clips_Organizer.yaml
 Description: Screenshot & Clip Organizer allows you to conviniently organize new Screenshots from different Sources.
 Tags: ["qoordination", "Organization", "Sorting", "Screenshots", "Clips", "Media", "Pictures", "Videos"]
