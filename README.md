@@ -1,4 +1,4 @@
-# SortMyClips
+# Screenshot & Clip Organizer
 ## Features:
 Organize new Screenshots based on game name.
 * Add **multiple unsorted source paths**
