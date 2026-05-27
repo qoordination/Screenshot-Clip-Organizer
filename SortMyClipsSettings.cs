@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Win32;
+using Newtonsoft.Json;
 
 namespace SortMyClips
 {
@@ -26,8 +27,9 @@ namespace SortMyClips
             set => SetValue(ref _unsortedPathString, value);
         }
 
-        private string _unsortedPathInput = string.Empty;
+        [JsonIgnore] private string _unsortedPathInput = string.Empty;
 
+        [JsonIgnore]
         public string UnsortedPathInput
         {
             get => _unsortedPathInput;
@@ -57,6 +59,33 @@ namespace SortMyClips
         {
             get => _steamPath;
             set => SetValue(ref _steamPath, value);
+        }
+
+        private string[] _mediaExtensions =
+            { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm" };
+
+        public string[] MediaExtensions
+        {
+            get => _mediaExtensions;
+            set => SetValue(ref _mediaExtensions, value);
+        }
+
+        [JsonIgnore] private string _mediaExtensionsInput = string.Empty;
+
+        [JsonIgnore]
+        public string MediaExtensionsInput
+        {
+            get => _mediaExtensionsInput;
+            set => SetValue(ref _mediaExtensionsInput, value);
+        }
+
+        private string _mediaExtensionsString =
+            ".jpg, .jpeg, .png, .bmp, .gif, .mp4, .avi, .mov, .wmv, .flv, .mkv, .webm";
+
+        public string MediaExtensionsString
+        {
+            get => _mediaExtensionsString;
+            set => SetValue(ref _mediaExtensionsString, value);
         }
 
         private bool _screenshotsMovedCount = true;
@@ -219,6 +248,147 @@ namespace SortMyClips
                         plugin.PlayniteApi.Dialogs.ShowMessage("Could not find any valid steam folders.");
                     }
                 }
+            });
+        }
+
+        public RelayCommand<object> RemoveUnsortedFolder
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                if (Directory.Exists(Settings.UnsortedPathInput) &&
+                    Settings.UnsortedPath.Contains(Settings.UnsortedPathInput))
+                {
+                    var paths = Settings.UnsortedPath.ToList();
+                    paths.Remove(Settings.UnsortedPathInput);
+                    Settings.UnsortedPath = paths.ToArray();
+                    logger.Info("Removed unsorted path: " + Settings.UnsortedPathInput);
+                    Settings.UnsortedPathString = string.Join(Environment.NewLine, Settings.UnsortedPath);
+                    Settings.UnsortedPathInput = string.Empty;
+                }
+                else if (Settings.UnsortedPathInput == string.Empty)
+                {
+                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a path to remove first.");
+                }
+                else if (!Directory.Exists(Settings.UnsortedPathInput))
+                {
+                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid path to remove.");
+                }
+                else
+                {
+                    plugin.PlayniteApi.Dialogs.ShowMessage("This path is not in the list.");
+                }
+            });
+        }
+
+        public RelayCommand<object> AddMediaExtension
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
+                {
+                    string extension = Settings.MediaExtensionsInput.Trim().ToLower();
+                    if (!extension.StartsWith("."))
+                    {
+                        extension = "." + extension;
+                    }
+
+                    if (!Settings.MediaExtensions.Contains(extension))
+                    {
+                        /*if (Settings.MediaExtensions.Length % 13 == 0)
+                        {
+                            Settings.MediaExtensionsString += Environment.NewLine;
+                        }*/
+
+                        var extensions = Settings.MediaExtensions.ToList();
+                        extensions.Add(extension);
+                        Settings.MediaExtensions = extensions.ToArray();
+                        Settings.MediaExtensionsString = string.Join(", ", Settings.MediaExtensions);
+                        logger.Info("Added media extension: " + extension);
+                        Settings.MediaExtensionsInput = string.Empty;
+                    }
+                    else
+                    {
+                        plugin.PlayniteApi.Dialogs.ShowMessage("This media extension is already added.");
+                    }
+                }
+                else
+                {
+                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid media extension before adding.");
+                }
+            });
+        }
+
+        public RelayCommand<object> RemoveMediaExtension
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
+                {
+                    string extension = Settings.MediaExtensionsInput.Trim().ToLower();
+                    if (!extension.StartsWith("."))
+                    {
+                        extension = "." + extension;
+                    }
+
+                    if (Settings.MediaExtensions.Contains(extension))
+                    {
+                        var extensions = Settings.MediaExtensions.ToList();
+                        extensions.Remove(extension);
+                        Settings.MediaExtensions = extensions.ToArray();
+                        Settings.MediaExtensionsString = string.Join(",", Settings.MediaExtensions);
+                        /*if (Settings.MediaExtensions.Length == 0)
+                        {
+                            Settings.MediaExtensionsString = string.Empty;
+                        }
+                        else
+                        {
+                            if (Settings.MediaExtensions.Last() == extension)
+                            {
+                                Settings.MediaExtensionsString =
+                                    Settings.MediaExtensionsString.Substring(0,
+                                        Settings.MediaExtensionsString.LastIndexOf(','));
+                            }
+                            else
+                            {
+                                Settings.MediaExtensionsString = string.Empty;
+                                foreach (var ext in Settings.MediaExtensions)
+                                {
+                                    if (Settings.MediaExtensions.Length % 12 == 0)
+                                    {
+                                        Settings.MediaExtensionsString += Environment.NewLine;
+                                    }
+
+                                    Settings.MediaExtensionsString += ", " + ext;
+                                }
+                            }
+                        }
+
+                        Settings.MediaExtensionsString = Settings.MediaExtensionsString.TrimEnd('\r', '\n');
+                        logger.Info("Removed media extension: " + extension);
+                        Settings.MediaExtensionsInput = string.Empty;*/
+                    }
+                    else
+                    {
+                        plugin.PlayniteApi.Dialogs.ShowMessage("This media extension is not in the list.");
+                    }
+                }
+                else
+                {
+                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid media extension to remove.");
+                }
+            });
+        }
+
+        public RelayCommand<object> RestoreDefaultMediaExtension
+        {
+            get => new RelayCommand<object>((a) =>
+            {
+                Settings.MediaExtensions = new[]
+                {
+                    ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"
+                };
+                Settings.MediaExtensionsString = string.Join(", ", Settings.MediaExtensions);
+                logger.Info("Restored default media extensions.");
             });
         }
 

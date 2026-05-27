@@ -23,10 +23,7 @@ namespace SortMyClips
         private bool _otherFolderFound;
         private bool _keyExists;
 
-        private string[] _mediaExtensions =
-            { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm" };
-
-        private string[] _initialDirState = { string.Empty };
+        private string[] _initialDirState = Array.Empty<string>();
 
         public override Guid Id { get; } = Guid.Parse("dfef3e4e-365c-474f-9a9c-5eaaadbc1d59");
 
@@ -70,54 +67,54 @@ namespace SortMyClips
 
         public override void OnGameStopped(OnGameStoppedEventArgs args)
         {
-            string[] newDirState = { string.Empty };
+            // Get list of new files in unsorted dir, compared to initial game start state
+            string[] newDirState = Array.Empty<string>();
+            string[] newFiles = Array.Empty<string>();
             foreach (string unsortedPath in settings.Settings.UnsortedPath)
             {
-                logger.Info("Game stopped: " + args.Game.Name);
-                logger.Info("Unsorted path: " + unsortedPath);
-                logger.Info("File Moved Count setting: " + settings.Settings.ScreenshotsMovedCount);
+                newDirState = newDirState
+                    .Concat(Directory.GetFiles(unsortedPath, "*.*", SearchOption.AllDirectories)).ToArray();
+                newFiles = newDirState.Except(_initialDirState).ToArray();
 
-                if ((unsortedPath != string.Empty && settings.Settings.SortedPath != string.Empty))
+                // If no new files are found, exit method
+                if (newFiles.Length == 0)
                 {
-                    // Sanitize game name to remove invalid characters for file paths
-                    string gameName = ReplaceInvalidChars(args.Game.Name);
-                    logger.Info("Sanitized game name: " + gameName);
-
-                    string screenDir = Path.Combine(settings.Settings.SortedPath, gameName) + "\\";
-                    logger.Info("Screen directory path: " + screenDir);
-
-                    // Get list of new files in unsorted dir, compared to initial game start state
-                    newDirState = newDirState
-                        .Concat(Directory.GetFiles(unsortedPath, "*.*", SearchOption.AllDirectories)).ToArray();
-                    string[] newFiles = newDirState.Except(_initialDirState).ToArray();
-
-                    // If no new files are found, exit method
-                    if (newFiles.Length == 0)
-                    {
-                        logger.Info("No new files found in unsorted directory.");
-                        continue;
-                    }
-
-                    SetupFolder(gameName, screenDir, args);
-
-                    MoveFiles(screenDir, newFiles, gameName);
+                    logger.Info("No new files found in unsorted directory.");
                 }
-                else if (unsortedPath == string.Empty)
-                {
-                    logger.Error("Screenshot directory not set.");
-                    NotificationMessage msg = new NotificationMessage("SortMyClips",
-                        "[Screenshot & Clips Organizer]\nUnsorted source directory is not set, could not move media.",
-                        NotificationType.Error);
-                    PlayniteApi.Notifications.Add(msg);
-                }
-                else if (settings.Settings.SortedPath == string.Empty)
-                {
-                    logger.Error("Sorted directory not set.");
-                    NotificationMessage msg = new NotificationMessage("SortMyClips",
-                        "[Screenshot & Clips Organizer]\nSorting target directory is not set, could not move media.",
-                        NotificationType.Error);
-                    PlayniteApi.Notifications.Add(msg);
-                }
+            }
+
+            logger.Info("Game stopped: " + args.Game.Name);
+            logger.Info("File Moved Count setting: " + settings.Settings.ScreenshotsMovedCount);
+
+            if ((settings.Settings.SortedPath != string.Empty))
+            {
+                // Sanitize game name to remove invalid characters for file paths
+                string gameName = ReplaceInvalidChars(args.Game.Name);
+                logger.Info("Sanitized game name: " + gameName);
+
+                string screenDir = Path.Combine(settings.Settings.SortedPath, gameName) + "\\";
+                logger.Info("Screen directory path: " + screenDir);
+
+
+                SetupFolder(gameName, screenDir, args);
+
+                MoveFiles(screenDir, newFiles, gameName);
+            }
+            else if (settings.Settings.UnsortedPath.Length == 0)
+            {
+                logger.Error("Screenshot directory not set.");
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nUnsorted source directory is not set, could not move media.",
+                    NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
+            }
+            else if (settings.Settings.SortedPath == string.Empty)
+            {
+                logger.Error("Sorted directory not set.");
+                NotificationMessage msg = new NotificationMessage("SortMyClips",
+                    "[Screenshot & Clips Organizer]\nSorting target directory is not set, could not move media.",
+                    NotificationType.Error);
+                PlayniteApi.Notifications.Add(msg);
             }
         }
 
@@ -192,6 +189,7 @@ namespace SortMyClips
         {
             // Set up message box options for handling non-media files
             bool moveAllFiles = false;
+            bool skipAllFiles = false;
             var yes = new MessageBoxOption("Yes", false, false);
             var no = new MessageBoxOption("No", true, false);
             var yesForAll = new MessageBoxOption("Yes (for all following)", false, false);
@@ -202,6 +200,71 @@ namespace SortMyClips
             options.Add(yesForAll);
             options.Add(noForAll);
 
+            // Check for non-media files and ask user if they want to move them, with option to move all or skip all
+            List<string> illegalFiles = new List<string>();
+            if (settings.Settings.MediaExtensions.Length == 0)
+            {
+                logger.Info("No media extensions set, all files will be moved without prompt.");
+            }
+            else
+            {
+                foreach (string file in newFiles)
+                {
+                    logger.Debug("Checking file: " + file);
+                    if (skipAllFiles)
+                    {
+                        // Find potentially illegal files (non media files) 
+                        if (!(settings.Settings.MediaExtensions.Contains(Path.GetExtension(file))))
+                        {
+                            illegalFiles.Add(file);
+                        }
+                    }
+                    else
+                    {
+                        if (!moveAllFiles && !(settings.Settings.MediaExtensions.Contains(Path.GetExtension(file))))
+                        {
+                            MessageBoxOption illegalFilesPrompt;
+                            logger.Info("Potential Non-Media File found: " + file);
+
+                            illegalFilesPrompt = PlayniteApi.Dialogs.ShowMessage(
+                                "Potential Non-Media File found: " + file +
+                                "\nAre you sure you want to move this file?", "",
+                                MessageBoxImage.Warning, options);
+
+                            if (illegalFilesPrompt == yes)
+                            {
+                                logger.Info("User chose to move this file: " + file);
+                            }
+                            else if (illegalFilesPrompt == no)
+                            {
+                                logger.Info("User chose to skip this file: " + file);
+                                illegalFiles.Add(file);
+                            }
+                            else if (illegalFilesPrompt == noForAll)
+                            {
+                                logger.Info("User chose to skip all non-media files.");
+                                illegalFiles.Add(file);
+                                skipAllFiles = true;
+                            }
+                            else if (illegalFilesPrompt == yesForAll)
+                            {
+                                logger.Info("User chose to move all files, including non-media files.");
+                                moveAllFiles = true;
+                            }
+                        }
+                    }
+                }
+            }
+
+            logger.Debug("Total files marked as non-media files and will be skipped: " + illegalFiles.Count);
+            foreach (string file in illegalFiles)
+            {
+                logger.Debug("File marked as non-media file and will be skipped: " + file + " with extension " +
+                             Path.GetExtension(file));
+            }
+
+            //  Remove illegal files from list of new files to be moved
+            newFiles = newFiles.Except(illegalFiles.ToArray()).ToArray();
             foreach (string file in newFiles)
             {
                 logger.Info("Found file: " + file);
@@ -213,40 +276,6 @@ namespace SortMyClips
                 string type = Path.GetExtension(file);
                 string fileName = "[" + gameName + "] " + creationTime + type;
 
-                //Potentially illegal file found 
-                if (!(_mediaExtensions.Contains(type)))
-                {
-                    if (!moveAllFiles)
-                    {
-                        MessageBoxOption illegalFilesPrompt;
-                        logger.Info("Potential Non-Media File found: " + file);
-
-                        illegalFilesPrompt = PlayniteApi.Dialogs.ShowMessage(
-                            "Potential Non-Media File found: " + file +
-                            "\nAre you sure you want to move this file?", "",
-                            MessageBoxImage.Warning, options);
-
-                        if (illegalFilesPrompt == yes)
-                        {
-                            logger.Info("User chose to move this file: " + file);
-                        }
-                        else if (illegalFilesPrompt == no)
-                        {
-                            logger.Info("User chose to skip this file: " + file);
-                            continue;
-                        }
-                        else if (illegalFilesPrompt == noForAll)
-                        {
-                            logger.Info("User chose to skip all non-media files.");
-                            break;
-                        }
-                        else if (illegalFilesPrompt == yesForAll)
-                        {
-                            logger.Info("User chose to move all files, including non-media files.");
-                            moveAllFiles = true;
-                        }
-                    }
-                }
 
                 // Move if file doesn't already exist at destination
                 if (!(File.Exists(screenDir + fileName)))
@@ -282,7 +311,7 @@ namespace SortMyClips
             _filesMovedCount = 0;
         }
 
-        // Check if folder for game already exists, if not create it. If folder with same game id but different name exists, rename it to match current game name and update JSON
+// Check if folder for game already exists, if not create it. If folder with same game id but different name exists, rename it to match current game name and update JSON
         public void SetupFolder(string gameName, string screenDir, OnGameStoppedEventArgs args)
         {
             if (!Directory.Exists(screenDir))
@@ -324,6 +353,7 @@ namespace SortMyClips
 
                 logger.Info("Key exists in JSON: " + _keyExists);
                 logger.Info("Other folder with same game id found in JSON: " + _otherFolderFound);
+
                 // If the game doesn't have an entry in the JSON or if the folder name in the JSON matches the current game name, create a new entry and folder
                 if (!(_otherFolderFound))
                 {
@@ -398,7 +428,7 @@ namespace SortMyClips
             }
         }
 
-        // Main menu manual refresh menu option and option to open sorted media folder
+// Main menu manual refresh menu option and option to open sorted media folder
         public override IEnumerable<MainMenuItem> GetMainMenuItems(GetMainMenuItemsArgs menuArgs)
         {
             // Option for manual refresh of data JSON

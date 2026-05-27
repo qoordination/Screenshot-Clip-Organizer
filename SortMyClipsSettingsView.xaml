@@ -6,27 +6,30 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600">
     <StackPanel Margin="10">
-        <TextBlock Text="Unsorted media path:" />
+        <TextBlock Text="Unsorted media path:" FontWeight="SemiBold" />
         <StackPanel Orientation="Horizontal">
             <TextBox Width="300" Text="{Binding Path =Settings.UnsortedPathInput}" />
             <Button Width="40" Margin="5, 0" Content="🗁" Command="{Binding BrowseUnsortedFolder}" />
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="0, 5">
             <Button Width="40" Margin="5, 0" Content="+" Command="{Binding AddUnsortedFolder}" />
+            <Button Width="40" Margin="5, 0" Content="-" Command="{Binding RemoveUnsortedPath}" />
             <Button Width="104" Margin="5, 0" Content="Clear Paths" Command="{Binding ClearPaths}" />
         </StackPanel>
 
-        <TextBlock Text="Sorting target path:" Margin="0 10 0 0" />
+        <TextBlock Text="Sorting target path:" Margin="0 10 0 0" FontWeight="SemiBold" />
         <StackPanel Orientation="Horizontal">
             <TextBox Width="300" Text="{Binding Path =Settings.SortedPath}" />
             <Button Width="40" Margin="5, 0" Content="🗁" Command="{Binding BrowseSortedFolder}" />
         </StackPanel>
 
-        <TextBlock Text="Add supported platforms paths:" Margin="0 10 0 0" />
         <StackPanel Orientation="Horizontal" Margin="0 10 0 0">
+            <TextBlock Text="Add supported platforms paths:" Margin="5 5" />
             <Button Width="80" Content="Steam" Command="{Binding AddSteamPath}" />
         </StackPanel>
 
         <Separator Margin="0 10 0 0" />
-        <TextBlock Margin="0, 5" Text="Currently tracked unsorted folders:" />
+        <TextBlock Margin="0, 5" Text="Currently tracked unsorted folders:" FontWeight="SemiBold" />
         <TextBlock Margin="10 5" Text="{Binding Settings.UnsortedPathString}" />
         <Separator />
 
@@ -42,5 +45,30 @@
             </CheckBox>
         </Grid>
 
+        <Separator Margin="0 10 0 0" />
+
+        <TextBlock Margin="0,5" Text="Currently allowed file types:" FontWeight="SemiBold" />
+        <StackPanel Orientation="Horizontal">
+            <TextBlock Text="{Binding Settings.MediaExtensionsString}"
+                       TextWrapping="Wrap"
+                       MaxWidth="250"
+                       Margin="10,5"
+                       VerticalAlignment="Top" />
+
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
+                <TextBox Width="80" Margin="10,5"
+                         Text="{Binding Settings.MediaExtensionsInput}"
+                         VerticalAlignment="Top" />
+                <Button Width="40" Margin="5,5" Content="+"
+                        Command="{Binding AddMediaExtension}"
+                        VerticalAlignment="Top" />
+                <Button Width="40" Margin="5,5" Content="-"
+                        Command="{Binding RemoveMediaExtension}"
+                        VerticalAlignment="Top" />
+                <Button Width="140" Margin="5,5" Content="Restore Defaults"
+                        Command="{Binding RestoreDefaultMediaExtension}"
+                        VerticalAlignment="Top" />
+            </StackPanel>
+        </StackPanel>
     </StackPanel>
 </UserControl>
