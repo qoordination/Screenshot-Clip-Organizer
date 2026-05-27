@@ -1,6 +1,6 @@
 # Screenshot & Clip Organizer
 ## Features:
-Organize new Screenshots based on game name.
+Organize new screenshots and clips based on game name.
 * Add **multiple unsorted source paths** (Also searches through subdirectories)
 * **Renames** media to name of game, in combination with file creation time
 * **Quick-Add** supported plattform's source path (currently only Steam)
