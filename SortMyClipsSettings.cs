@@ -199,16 +199,19 @@ namespace SortMyClips
                             {
                                 logger.Info(
                                     "Already added or no valid steam screenshots folder found in: " + userFolder);
-                                plugin.PlayniteApi.Dialogs.ShowMessage("Steam path is already added or not valid.\n" +
-                                                                       Path.Combine(userFolder, "760", "remote") +
-                                                                       "\\");
+                                plugin.PlayniteApi.Dialogs.ShowMessage(
+                                    "Steam path is already added or does not contain Screenshots:\n" +
+                                    Path.Combine(userFolder, "760", "remote") +
+                                    "\\");
                             }
                         }
+
                         var newPaths = string.Empty;
                         foreach (string path in Settings.UnsortedPath)
                         {
                             newPaths = Environment.NewLine + path + Environment.NewLine;
                         }
+
                         Settings.UnsortedPathString += newPaths;
                     }
                     else
