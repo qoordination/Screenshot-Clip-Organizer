@@ -294,11 +294,6 @@ namespace SortMyClips
 
                     if (!Settings.MediaExtensions.Contains(extension))
                     {
-                        /*if (Settings.MediaExtensions.Length % 13 == 0)
-                        {
-                            Settings.MediaExtensionsString += Environment.NewLine;
-                        }*/
-
                         var extensions = Settings.MediaExtensions.ToList();
                         extensions.Add(extension);
                         Settings.MediaExtensions = extensions.ToArray();
@@ -336,36 +331,6 @@ namespace SortMyClips
                         extensions.Remove(extension);
                         Settings.MediaExtensions = extensions.ToArray();
                         Settings.MediaExtensionsString = string.Join(",", Settings.MediaExtensions);
-                        /*if (Settings.MediaExtensions.Length == 0)
-                        {
-                            Settings.MediaExtensionsString = string.Empty;
-                        }
-                        else
-                        {
-                            if (Settings.MediaExtensions.Last() == extension)
-                            {
-                                Settings.MediaExtensionsString =
-                                    Settings.MediaExtensionsString.Substring(0,
-                                        Settings.MediaExtensionsString.LastIndexOf(','));
-                            }
-                            else
-                            {
-                                Settings.MediaExtensionsString = string.Empty;
-                                foreach (var ext in Settings.MediaExtensions)
-                                {
-                                    if (Settings.MediaExtensions.Length % 12 == 0)
-                                    {
-                                        Settings.MediaExtensionsString += Environment.NewLine;
-                                    }
-
-                                    Settings.MediaExtensionsString += ", " + ext;
-                                }
-                            }
-                        }
-
-                        Settings.MediaExtensionsString = Settings.MediaExtensionsString.TrimEnd('\r', '\n');
-                        logger.Info("Removed media extension: " + extension);
-                        Settings.MediaExtensionsInput = string.Empty;*/
                     }
                     else
                     {
