@@ -22,6 +22,7 @@ namespace SortMyClips
         private int _filesMovedCount;
         private bool _otherFolderFound;
         private bool _keyExists;
+        private bool _setupFinished;
 
         private string[] _initialDirState = Array.Empty<string>();
 
@@ -43,6 +44,10 @@ namespace SortMyClips
 
         public override void OnGameStarted(OnGameStartedEventArgs args)
         {
+        }
+
+        public override void OnGameStarting(OnGameStartingEventArgs args)
+        {
             logger.Info("Unsorted Directory Paths:" + settings.Settings.UnsortedPath.Length);
             foreach (string unsortedPath in settings.Settings.UnsortedPath)
             {
@@ -57,16 +62,17 @@ namespace SortMyClips
                 }
             }
 
+            _setupFinished = true;
             logger.Info("New state: " + _initialDirState.Length);
-        }
-
-        public override void OnGameStarting(OnGameStartingEventArgs args)
-        {
-            // Add code to be executed when game is preparing to be started.
         }
 
         public override void OnGameStopped(OnGameStoppedEventArgs args)
         {
+            if (!_setupFinished)
+            {
+                logger.Error("Setup was not finished.");
+                return;
+            }
             // Get list of new files in unsorted dir, compared to initial game start state
             string[] newDirState = Array.Empty<string>();
             string[] newFiles = Array.Empty<string>();
