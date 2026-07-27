@@ -1,10 +1,10 @@
-Id: SortMyClips_dfef3e4e-365c-474f-9a9c-5eaaadbc1d59
+Id: Screenshot_Clip_Organizer
 Name: Screenshot & Clips Organizer
 Author: qoordination 
-Version: 1.0
+Version: 1.0.1
 Module: SortMyClips.dll
 Type: GenericPlugin
-Icon: icon.png
+Icon: Resources/icon.png
 Links: 
--Name: GitHub
--Url: https://github.com/qoordination/Screenshot-Clip-Organizer
+    - Name: GitHub
+      Url: https://github.com/qoordination/Screenshot-Clip-Organizer

@@ -4,7 +4,7 @@ Author: qoordination
 Version: 1.0.1
 Module: SortMyClips.dll
 Type: GenericPlugin
-Icon: icon.png
+Icon: Resources/icon.png
 Links: 
-  -Name: GitHub
-  -Url: https://github.com/qoordination/Screenshot-Clip-Organizer
+    - Name: GitHub
+      Url: https://github.com/qoordination/Screenshot-Clip-Organizer

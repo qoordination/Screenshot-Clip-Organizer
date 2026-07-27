@@ -1,4 +1,5 @@
 C:\dev\Personal\PlayniteExtensions\General\SortMyClips\bin\Debug\extension.yaml
+C:\dev\Personal\PlayniteExtensions\General\SortMyClips\bin\Debug\Resources\icon.png
 C:\dev\Personal\PlayniteExtensions\General\SortMyClips\bin\Debug\Localization\en_US.xaml
 C:\dev\Personal\PlayniteExtensions\General\SortMyClips\bin\Debug\SortMyClips.dll.config
 C:\dev\Personal\PlayniteExtensions\General\SortMyClips\bin\Debug\SortMyClips.dll
@@ -35,4 +36,3 @@ C:\dev\Personal\PlayniteExtensions\General\SortMyClips\obj\Debug\SortMyClips.csp
 C:\dev\Personal\PlayniteExtensions\General\SortMyClips\obj\Debug\SortMyCl.C7D71744.Up2Date
 C:\dev\Personal\PlayniteExtensions\General\SortMyClips\obj\Debug\SortMyClips.dll
 C:\dev\Personal\PlayniteExtensions\General\SortMyClips\obj\Debug\SortMyClips.pdb
-C:\dev\Personal\PlayniteExtensions\General\SortMyClips\bin\Debug\Resources\icon.png
