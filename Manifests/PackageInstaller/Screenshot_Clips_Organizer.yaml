@@ -1,5 +1,11 @@
 AddonId: Screenshot_Clip_Organizer
 Packages:
+  - Version: 1.0.2
+    RequiredApiVersion: 6.16.0
+    ReleaseDate: 2026-09-27
+    PackageUrl: https://github.com/qoordination/Screenshot-Clip-Organizer/releases/download/v1.0.2/Screenshot_Clips_Organizer_v1.0.2.pext
+    Changelog:
+      - 'Fixed: Unnecessary folders being created when no screenshot was taken.'
   - Version: 1.0.1
     RequiredApiVersion: 6.16.0
     ReleaseDate: 2026-07-27

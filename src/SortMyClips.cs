@@ -92,7 +92,7 @@ namespace SortMyClips
             logger.Info("Game stopped: " + args.Game.Name);
             logger.Info("File Moved Count setting: " + settings.Settings.ScreenshotsMovedCount);
 
-            if ((settings.Settings.SortedPath != string.Empty))
+            if ((settings.Settings.SortedPath != string.Empty) && newFiles.Length != 0)
             {
                 // Sanitize game name to remove invalid characters for file paths
                 string gameName = ReplaceInvalidChars(args.Game.Name);
