@@ -1,0 +1,19 @@
+﻿# Build
+bin/
+obj/
+
+# NuGet
+packages/
+*.nupkg
+
+# VS / JetBrains
+.vs/
+*.suo
+*.user
+*.userprefs
+.idea/
+
+# Test / logs
+TestResults/
+*.log
+*.cache
