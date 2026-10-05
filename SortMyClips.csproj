@@ -84,8 +84,10 @@
       <DependentUpon>SortMyClipsSettingsView.xaml</DependentUpon>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="src\FileManager.cs" />
     <Compile Include="src\SortMyClips.cs" />
     <Compile Include="src\SortMyClipsSettings.cs" />
+    <Compile Include="src\Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

@@ -2,6 +2,7 @@
 using Playnite.SDK.Data;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using Microsoft.Win32;
@@ -11,20 +12,12 @@ namespace SortMyClips
 {
     public class SortMyClipsSettings : ObservableObject
     {
-        private string[] _unsortedPaths = Array.Empty<string>();
+        private ObservableCollection<string> _unsortedPaths = new ObservableCollection<string>();
 
-        public string[] UnsortedPath
+        public ObservableCollection<string> UnsortedPaths
         {
             get => _unsortedPaths;
             set => SetValue(ref _unsortedPaths, value);
-        }
-
-        private string _unsortedPathString = string.Empty;
-
-        public string UnsortedPathString
-        {
-            get => _unsortedPathString;
-            set => SetValue(ref _unsortedPathString, value);
         }
 
         [JsonIgnore] private string _unsortedPathInput = string.Empty;
@@ -61,10 +54,11 @@ namespace SortMyClips
             set => SetValue(ref _steamPath, value);
         }
 
-        private string[] _mediaExtensions =
-            { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm" };
+        private ObservableCollection<string> _mediaExtensions =
+            new ObservableCollection<string> { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv",
+                ".flv", ".mkv", ".webm" };
 
-        public string[] MediaExtensions
+        public ObservableCollection<string> MediaExtensions
         {
             get => _mediaExtensions;
             set => SetValue(ref _mediaExtensions, value);
@@ -79,21 +73,12 @@ namespace SortMyClips
             set => SetValue(ref _mediaExtensionsInput, value);
         }
 
-        private string _mediaExtensionsString =
-            ".jpg, .jpeg, .png, .bmp, .gif, .mp4, .avi, .mov, .wmv, .flv, .mkv, .webm";
+        private bool _displayAmountMoved = true;
 
-        public string MediaExtensionsString
+        public bool DisplayAmountMoved
         {
-            get => _mediaExtensionsString;
-            set => SetValue(ref _mediaExtensionsString, value);
-        }
-
-        private bool _screenshotsMovedCount = true;
-
-        public bool ScreenshotsMovedCount
-        {
-            get => _screenshotsMovedCount;
-            set => SetValue(ref _screenshotsMovedCount, value);
+            get => _displayAmountMoved;
+            set => SetValue(ref _displayAmountMoved, value);
         }
 
         // Playnite serializes settings object to a JSON object and saves it as text file.
@@ -144,7 +129,7 @@ namespace SortMyClips
                 var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
                 if (!string.IsNullOrWhiteSpace(chosenDir))
                 {
-                    Settings.UnsortedPathInput = chosenDir + "\\";
+                    Settings.UnsortedPathInput = chosenDir;
                 }
 
                 if (Settings.SortedPath == string.Empty)
@@ -161,7 +146,7 @@ namespace SortMyClips
                 var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
                 if (!string.IsNullOrWhiteSpace(chosenDir))
                 {
-                    Settings.SortedPath = chosenDir + "\\";
+                    Settings.SortedPath = chosenDir;
                 }
             });
         }
@@ -173,13 +158,10 @@ namespace SortMyClips
                 if (!string.IsNullOrWhiteSpace(Settings.UnsortedPathInput) &&
                     Directory.Exists(Settings.UnsortedPathInput))
                 {
-                    if (!Settings.UnsortedPath.Contains(Settings.UnsortedPathInput))
+                    if (!Settings.UnsortedPaths.Contains(Settings.UnsortedPathInput))
                     {
-                        var paths = Settings.UnsortedPath.ToList();
-                        paths.Add(Settings.UnsortedPathInput);
-                        Settings.UnsortedPath = paths.ToArray();
+                        Settings.UnsortedPaths.Add(Settings.UnsortedPathInput);
                         logger.Info("Added unsorted path: " + Settings.UnsortedPathInput);
-                        Settings.UnsortedPathString = string.Join(Environment.NewLine, Settings.UnsortedPath);
                         Settings.UnsortedPathInput = string.Empty;
                     }
                     else
@@ -198,8 +180,7 @@ namespace SortMyClips
         {
             get => new RelayCommand<object>((a) =>
             {
-                Settings.UnsortedPath = Array.Empty<string>();
-                Settings.UnsortedPathString = string.Empty;
+                Settings.UnsortedPaths.Clear();
                 logger.Info("Cleared unsorted paths.");
             });
         }
@@ -208,45 +189,37 @@ namespace SortMyClips
         {
             get => new RelayCommand<object>((a) =>
             {
-                string steamUserDataPath = Path.Combine(Settings.SteamPath.Replace("/", "\\"), "userdata");
-                if (Directory.Exists(steamUserDataPath))
+                var steamUserDataPath = (Settings.SteamPath != null) ? Path.Combine(Settings.SteamPath.Replace("/", "\\"), "userdata")
+                    : string.Empty;
+                if (!Directory.Exists(steamUserDataPath))
                 {
-                    string[] userFolders = Directory.GetDirectories(steamUserDataPath);
-                    if (userFolders.Length > 0)
+                    logger.Info("Could not find steam userdata folder at: " + steamUserDataPath);
+                    return;
+                }
+                string[] userFolders = Directory.GetDirectories(steamUserDataPath);
+                if (userFolders.Length > 0)
+                {
+                    foreach (var userFolder in userFolders)
                     {
-                        foreach (string userFolder in userFolders)
+                        if (Directory.Exists(Path.Combine(userFolder, "760", "remote")) &&
+                            !(Settings.UnsortedPaths.Contains(Path.Combine(userFolder, "760", "remote"))))
                         {
-                            if (Directory.Exists(Path.Combine(userFolder, "760", "remote") + "\\") &&
-                                !(Settings.UnsortedPath.Contains(Path.Combine(userFolder, "760", "remote") + "\\")))
-                            {
-                                var paths = Settings.UnsortedPath.ToList();
-                                paths.Add(Path.Combine(userFolder, "760", "remote") + "\\");
-                                Settings.UnsortedPath = paths.ToArray();
-                                logger.Info("Added steam path: " + Path.Combine(userFolder, "760", "remote") + "\\");
-                            }
-                            else
-                            {
-                                logger.Info(
-                                    "Already added or no valid steam screenshots folder found in: " + userFolder);
-                                plugin.PlayniteApi.Dialogs.ShowMessage(
-                                    "Steam path is already added or does not contain Screenshots:\n" +
-                                    Path.Combine(userFolder, "760", "remote") +
-                                    "\\");
-                            }
+                            Settings.UnsortedPaths.Add(Path.Combine(userFolder, "760", "remote"));
+                            logger.Info("Added steam path: " + Path.Combine(userFolder, "760", "remote"));
                         }
-
-                        var newPaths = string.Empty;
-                        foreach (string path in Settings.UnsortedPath)
+                        else
                         {
-                            newPaths = Environment.NewLine + path + Environment.NewLine;
+                            logger.Info(
+                                "Already added or no valid steam screenshots folder found in: " + userFolder);
+                            plugin.PlayniteApi.Dialogs.ShowMessage(
+                                "Steam path is already added or does not contain Screenshots:\n" +
+                                Path.Combine(userFolder, "760", "remote"));
                         }
-
-                        Settings.UnsortedPathString += newPaths;
                     }
-                    else
-                    {
-                        plugin.PlayniteApi.Dialogs.ShowMessage("Could not find any valid steam folders.");
-                    }
+                }
+                else
+                {
+                    plugin.PlayniteApi.Dialogs.ShowMessage("Could not find any valid steam folders.");
                 }
             });
         }
@@ -256,14 +229,10 @@ namespace SortMyClips
             get => new RelayCommand<object>((a) =>
             {
                 if (Directory.Exists(Settings.UnsortedPathInput) &&
-                    Settings.UnsortedPath.Contains(Settings.UnsortedPathInput))
+                    Settings.UnsortedPaths.Contains(Settings.UnsortedPathInput))
                 {
-                    var paths = Settings.UnsortedPath.ToList();
-                    paths.Remove(Settings.UnsortedPathInput);
-                    Settings.UnsortedPath = paths.ToArray();
+                    Settings.UnsortedPaths.Remove(Settings.UnsortedPathInput);
                     logger.Info("Removed unsorted path: " + Settings.UnsortedPathInput);
-                    Settings.UnsortedPathString = string.Join(Environment.NewLine, Settings.UnsortedPath);
-                    Settings.UnsortedPathInput = string.Empty;
                 }
                 else if (Settings.UnsortedPathInput == string.Empty)
                 {
@@ -286,7 +255,7 @@ namespace SortMyClips
             {
                 if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
                 {
-                    string extension = Settings.MediaExtensionsInput.Trim().ToLower();
+                    string extension = Settings.MediaExtensionsInput.Trim().ToLowerInvariant();
                     if (!extension.StartsWith("."))
                     {
                         extension = "." + extension;
@@ -294,10 +263,7 @@ namespace SortMyClips
 
                     if (!Settings.MediaExtensions.Contains(extension))
                     {
-                        var extensions = Settings.MediaExtensions.ToList();
-                        extensions.Add(extension);
-                        Settings.MediaExtensions = extensions.ToArray();
-                        Settings.MediaExtensionsString = string.Join(", ", Settings.MediaExtensions);
+                        Settings.MediaExtensions.Add(extension);
                         logger.Info("Added media extension: " + extension);
                         Settings.MediaExtensionsInput = string.Empty;
                     }
@@ -319,7 +285,7 @@ namespace SortMyClips
             {
                 if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
                 {
-                    string extension = Settings.MediaExtensionsInput.Trim().ToLower();
+                    string extension = Settings.MediaExtensionsInput.Trim().ToLowerInvariant();
                     if (!extension.StartsWith("."))
                     {
                         extension = "." + extension;
@@ -327,10 +293,7 @@ namespace SortMyClips
 
                     if (Settings.MediaExtensions.Contains(extension))
                     {
-                        var extensions = Settings.MediaExtensions.ToList();
-                        extensions.Remove(extension);
-                        Settings.MediaExtensions = extensions.ToArray();
-                        Settings.MediaExtensionsString = string.Join(",", Settings.MediaExtensions);
+                        Settings.MediaExtensions.Remove(extension);
                     }
                     else
                     {
@@ -348,11 +311,8 @@ namespace SortMyClips
         {
             get => new RelayCommand<object>((a) =>
             {
-                Settings.MediaExtensions = new[]
-                {
-                    ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"
-                };
-                Settings.MediaExtensionsString = string.Join(", ", Settings.MediaExtensions);
+                Settings.MediaExtensions = new ObservableCollection<string> { ".jpg", ".jpeg", ".png", ".bmp", ".gif",
+                    ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm" };
                 logger.Info("Restored default media extensions.");
             });
         }

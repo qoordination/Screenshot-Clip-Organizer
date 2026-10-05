@@ -13,13 +13,13 @@
         </StackPanel>
         <StackPanel Orientation="Horizontal" Margin="0, 5">
             <Button Width="40" Margin="5, 0" Content="+" Command="{Binding AddUnsortedFolder}" />
-            <Button Width="40" Margin="5, 0" Content="-" Command="{Binding RemoveUnsortedPath}" />
+            <Button Width="40" Margin="5, 0" Content="-" Command="{Binding RemoveUnsortedFolder}" />
             <Button Width="104" Margin="5, 0" Content="Clear Paths" Command="{Binding ClearPaths}" />
         </StackPanel>
 
         <TextBlock Text="Sorting target path:" Margin="0 10 0 0" FontWeight="SemiBold" />
         <StackPanel Orientation="Horizontal">
-            <TextBox Width="300" Text="{Binding Path =Settings.SortedPath}" />
+            <TextBox Width="300" Text="{Binding Path=Settings.SortedPath}" />
             <Button Width="40" Margin="5, 0" Content="🗁" Command="{Binding BrowseSortedFolder}" />
         </StackPanel>
 
@@ -30,11 +30,21 @@
 
         <Separator Margin="0 10 0 0" />
         <TextBlock Margin="0, 5" Text="Currently tracked unsorted folders:" FontWeight="SemiBold" />
-        <TextBlock Margin="10 5" Text="{Binding Settings.UnsortedPathString}" />
+        <ItemsControl ItemsSource="{Binding Settings.UnsortedPaths}"
+                      Margin="10, 5"
+                      Foreground="White">
+            <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding}"
+                               TextWrapping="Wrap"
+                               Margin="0, 2" />
+                </DataTemplate>
+            </ItemsControl.ItemTemplate>
+        </ItemsControl>
         <Separator />
 
         <Grid Margin="0 10 0 0">
-            <CheckBox IsChecked="{Binding Settings.ScreenshotsMovedCount}">
+            <CheckBox IsChecked="{Binding Settings.DisplayAmountMoved}">
                 <TextBlock HorizontalAlignment="Right" Text="Notification, if media was moved"></TextBlock>
             </CheckBox>
         </Grid>
@@ -49,11 +59,17 @@
 
         <TextBlock Margin="0,5" Text="Currently allowed file types:" FontWeight="SemiBold" />
         <StackPanel Orientation="Horizontal">
-            <TextBlock Text="{Binding Settings.MediaExtensionsString}"
-                       TextWrapping="Wrap"
-                       MaxWidth="250"
-                       Margin="10,5"
-                       VerticalAlignment="Top" />
+            <ItemsControl ItemsSource="{Binding Settings.MediaExtensions}"
+                          MaxWidth="250"
+                          Margin="10, 5"
+                          VerticalAlignment="Top"
+                          Foreground="White">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
 
             <StackPanel Orientation="Horizontal" VerticalAlignment="Top">
                 <TextBox Width="80" Margin="10,5"
