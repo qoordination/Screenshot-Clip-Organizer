@@ -1,5 +1,8 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
                     xmlns:sys="clr-namespace:System;assembly=mscorlib">
-
+    <sys:String x:Key="Settings_SortedPathText">Folder to sort media into:</sys:String>
+    <sys:String x:Key="Settings_AddUnsortedPathText">Add folder with unsorted media:</sys:String>
+    <sys:String x:Key="Settings_PreconfiguredPathsText">Preconfigured paths:</sys:String>
+    <sys:String x:Key="Settings_ClearUnsortedPathsButton">Clear All Unsorted Paths</sys:String>
 </ResourceDictionary>

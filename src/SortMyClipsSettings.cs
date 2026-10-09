@@ -55,8 +55,11 @@ namespace SortMyClips
         }
 
         private ObservableCollection<string> _mediaExtensions =
-            new ObservableCollection<string> { ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv",
-                ".flv", ".mkv", ".webm" };
+            new ObservableCollection<string>
+            {
+                ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv",
+                ".flv", ".mkv", ".webm"
+            };
 
         public ObservableCollection<string> MediaExtensions
         {
@@ -103,6 +106,16 @@ namespace SortMyClips
             }
         }
 
+        public RelayCommand<object> BrowseUnsortedFolder { get; }
+        public RelayCommand<object> AddUnsortedFolder { get; }
+        public RelayCommand<object> RemoveUnsortedFolder { get; }
+        public RelayCommand<object> BrowseSortedFolder { get; }
+        public RelayCommand<object> AddSteamPaths { get; }
+        public RelayCommand<object> ClearUnsortedPaths { get; }
+        public RelayCommand<object> AddMediaExtension { get; }
+        public RelayCommand<object> RemoveMediaExtension { get; }
+        public RelayCommand<object> ResetMediaExtensions { get; }
+
         public SortMyClipsSettingsViewModel(SortMyClips plugin)
         {
             // Injecting your plugin instance is required for Save/Load method because Playnite saves data to a location based on what plugin requested the operation.
@@ -120,201 +133,195 @@ namespace SortMyClips
             {
                 Settings = new SortMyClipsSettings();
             }
+
+            BrowseUnsortedFolder = new RelayCommand<object>(_ => BrowseUnsortedFolderImpl());
+            AddUnsortedFolder = new RelayCommand<object>(_ => AddUnsortedFolderImpl());
+            RemoveUnsortedFolder = new RelayCommand<object>(path => RemoveUnsortedFolderImpl(path));
+            BrowseSortedFolder = new RelayCommand<object>(_ => BrowseSortedFolderImpl());
+            AddSteamPaths = new RelayCommand<object>(_ => AddSteamPathsImpl());
+            ClearUnsortedPaths = new RelayCommand<object>(_ => ClearUnsortedPathsImpl());
+            AddMediaExtension = new RelayCommand<object>(_ => AddMediaExtensionImpl());
+            RemoveMediaExtension = new RelayCommand<object>(_ => RemoveMediaExtensionImpl());
+            ResetMediaExtensions = new RelayCommand<object>(_ => ResetMediaExtensionsImpl());
         }
 
-        public RelayCommand<object> BrowseUnsortedFolder
+        private void BrowseUnsortedFolderImpl()
         {
-            get => new RelayCommand<object>((a) =>
+            var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
+            if (string.IsNullOrWhiteSpace(chosenDir))
             {
-                var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
-                if (!string.IsNullOrWhiteSpace(chosenDir))
-                {
-                    Settings.UnsortedPathInput = chosenDir;
-                }
+                return;
+            }
 
-                if (Settings.SortedPath == string.Empty)
-                {
-                    Settings.SortedPath = Settings.UnsortedPathInput;
-                }
-            });
+            Settings.UnsortedPathInput = chosenDir;
+
+            if (string.IsNullOrEmpty(Settings.SortedPath) || string.IsNullOrWhiteSpace(Settings.SortedPath))
+            {
+                Settings.SortedPath = Settings.UnsortedPathInput;
+            }
         }
 
-        public RelayCommand<object> BrowseSortedFolder
+        private void AddUnsortedFolderImpl()
         {
-            get => new RelayCommand<object>((a) =>
+            var path = Settings.UnsortedPathInput;
+            if (string.IsNullOrWhiteSpace(path) || !Directory.Exists(path))
             {
-                var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
-                if (!string.IsNullOrWhiteSpace(chosenDir))
-                {
-                    Settings.SortedPath = chosenDir;
-                }
-            });
+                plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid path before adding.");
+                return;
+            }
+
+            if (Settings.UnsortedPaths.Contains(path))
+            {
+                plugin.PlayniteApi.Dialogs.ShowMessage("This path is already added.");
+                return;
+            }
+
+            Settings.UnsortedPaths.Add(path);
+            logger.Info("Added unsorted path: " + path);
+            Settings.UnsortedPathInput = string.Empty;
         }
 
-        public RelayCommand<object> AddUnsortedFolder
+        private void RemoveUnsortedFolderImpl(object parameter)
         {
-            get => new RelayCommand<object>((a) =>
+            if (!(parameter is string path))
             {
-                if (!string.IsNullOrWhiteSpace(Settings.UnsortedPathInput) &&
-                    Directory.Exists(Settings.UnsortedPathInput))
+                plugin.PlayniteApi.Dialogs.ShowMessage("Invalid path provided.");
+                return;
+            }
+            
+            if (Directory.Exists(path) &&
+                Settings.UnsortedPaths.Contains(path))
+            {
+                Settings.UnsortedPaths.Remove(path);
+                logger.Info("Removed unsorted path: " + path);
+            }
+            else if (string.IsNullOrEmpty(path))
+            {
+                plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a path to remove first.");
+            }
+            else if (!Directory.Exists(path))
+            {
+                plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid path to remove.");
+            }
+            else
+            {
+                plugin.PlayniteApi.Dialogs.ShowMessage("This path is not in the list.");
+            }
+        }
+
+        private void BrowseSortedFolderImpl()
+        {
+            var chosenDir = plugin.PlayniteApi.Dialogs.SelectFolder();
+            if (!string.IsNullOrWhiteSpace(chosenDir))
+            {
+                Settings.SortedPath = chosenDir;
+            }
+        }
+
+        private void AddSteamPathsImpl()
+        {
+            var steamUserDataPath = (Settings.SteamPath != null)
+                ? Path.Combine(Settings.SteamPath.Replace("/", "\\"), "userdata")
+                : string.Empty;
+            if (!Directory.Exists(steamUserDataPath))
+            {
+                logger.Info("Could not find steam userdata folder at: " + steamUserDataPath);
+                return;
+            }
+
+            string[] userFolders = Directory.GetDirectories(steamUserDataPath);
+            if (userFolders.Length > 0)
+            {
+                foreach (var userFolder in userFolders)
                 {
-                    if (!Settings.UnsortedPaths.Contains(Settings.UnsortedPathInput))
+                    if (Directory.Exists(Path.Combine(userFolder, "760", "remote")) &&
+                        !(Settings.UnsortedPaths.Contains(Path.Combine(userFolder, "760", "remote"))))
                     {
-                        Settings.UnsortedPaths.Add(Settings.UnsortedPathInput);
-                        logger.Info("Added unsorted path: " + Settings.UnsortedPathInput);
-                        Settings.UnsortedPathInput = string.Empty;
+                        Settings.UnsortedPaths.Add(Path.Combine(userFolder, "760", "remote"));
+                        logger.Info("Added steam path: " + Path.Combine(userFolder, "760", "remote"));
                     }
                     else
                     {
-                        plugin.PlayniteApi.Dialogs.ShowMessage("This path is already added.");
+                        logger.Info(
+                            "Already added or no valid steam screenshots folder found in: " + userFolder);
+                        plugin.PlayniteApi.Dialogs.ShowMessage(
+                            "Steam path is already added or does not contain Screenshots:\n" +
+                            Path.Combine(userFolder, "760", "remote"));
                     }
+                }
+            }
+            else
+            {
+                plugin.PlayniteApi.Dialogs.ShowMessage("Could not find any valid steam folders.");
+            }
+        }
+
+        private void ClearUnsortedPathsImpl()
+        {
+            Settings.UnsortedPaths.Clear();
+            logger.Info("Cleared unsorted paths.");
+        }
+
+        private void AddMediaExtensionImpl()
+        {
+            if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
+            {
+                string extension = Settings.MediaExtensionsInput.Trim().ToLowerInvariant();
+                if (!extension.StartsWith("."))
+                {
+                    extension = "." + extension;
+                }
+
+                if (!Settings.MediaExtensions.Contains(extension))
+                {
+                    Settings.MediaExtensions.Add(extension);
+                    logger.Info("Added media extension: " + extension);
+                    Settings.MediaExtensionsInput = string.Empty;
                 }
                 else
                 {
-                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid path before adding.");
+                    plugin.PlayniteApi.Dialogs.ShowMessage("This media extension is already added.");
                 }
-            });
+            }
+            else
+            {
+                plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid media extension before adding.");
+            }
         }
 
-        public RelayCommand<object> ClearPaths
+        private void RemoveMediaExtensionImpl()
         {
-            get => new RelayCommand<object>((a) =>
+            if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
             {
-                Settings.UnsortedPaths.Clear();
-                logger.Info("Cleared unsorted paths.");
-            });
-        }
-
-        public RelayCommand<object> AddSteamPath
-        {
-            get => new RelayCommand<object>((a) =>
-            {
-                var steamUserDataPath = (Settings.SteamPath != null) ? Path.Combine(Settings.SteamPath.Replace("/", "\\"), "userdata")
-                    : string.Empty;
-                if (!Directory.Exists(steamUserDataPath))
+                string extension = Settings.MediaExtensionsInput.Trim().ToLowerInvariant();
+                if (!extension.StartsWith("."))
                 {
-                    logger.Info("Could not find steam userdata folder at: " + steamUserDataPath);
-                    return;
+                    extension = "." + extension;
                 }
-                string[] userFolders = Directory.GetDirectories(steamUserDataPath);
-                if (userFolders.Length > 0)
+
+                if (Settings.MediaExtensions.Contains(extension))
                 {
-                    foreach (var userFolder in userFolders)
-                    {
-                        if (Directory.Exists(Path.Combine(userFolder, "760", "remote")) &&
-                            !(Settings.UnsortedPaths.Contains(Path.Combine(userFolder, "760", "remote"))))
-                        {
-                            Settings.UnsortedPaths.Add(Path.Combine(userFolder, "760", "remote"));
-                            logger.Info("Added steam path: " + Path.Combine(userFolder, "760", "remote"));
-                        }
-                        else
-                        {
-                            logger.Info(
-                                "Already added or no valid steam screenshots folder found in: " + userFolder);
-                            plugin.PlayniteApi.Dialogs.ShowMessage(
-                                "Steam path is already added or does not contain Screenshots:\n" +
-                                Path.Combine(userFolder, "760", "remote"));
-                        }
-                    }
+                    Settings.MediaExtensions.Remove(extension);
                 }
                 else
                 {
-                    plugin.PlayniteApi.Dialogs.ShowMessage("Could not find any valid steam folders.");
+                    plugin.PlayniteApi.Dialogs.ShowMessage("This media extension is not in the list.");
                 }
-            });
+            }
+            else
+            {
+                plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid media extension to remove.");
+            }
         }
 
-        public RelayCommand<object> RemoveUnsortedFolder
+        private void ResetMediaExtensionsImpl()
         {
-            get => new RelayCommand<object>((a) =>
+            Settings.MediaExtensions = new ObservableCollection<string>
             {
-                if (Directory.Exists(Settings.UnsortedPathInput) &&
-                    Settings.UnsortedPaths.Contains(Settings.UnsortedPathInput))
-                {
-                    Settings.UnsortedPaths.Remove(Settings.UnsortedPathInput);
-                    logger.Info("Removed unsorted path: " + Settings.UnsortedPathInput);
-                }
-                else if (Settings.UnsortedPathInput == string.Empty)
-                {
-                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a path to remove first.");
-                }
-                else if (!Directory.Exists(Settings.UnsortedPathInput))
-                {
-                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid path to remove.");
-                }
-                else
-                {
-                    plugin.PlayniteApi.Dialogs.ShowMessage("This path is not in the list.");
-                }
-            });
-        }
-
-        public RelayCommand<object> AddMediaExtension
-        {
-            get => new RelayCommand<object>((a) =>
-            {
-                if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
-                {
-                    string extension = Settings.MediaExtensionsInput.Trim().ToLowerInvariant();
-                    if (!extension.StartsWith("."))
-                    {
-                        extension = "." + extension;
-                    }
-
-                    if (!Settings.MediaExtensions.Contains(extension))
-                    {
-                        Settings.MediaExtensions.Add(extension);
-                        logger.Info("Added media extension: " + extension);
-                        Settings.MediaExtensionsInput = string.Empty;
-                    }
-                    else
-                    {
-                        plugin.PlayniteApi.Dialogs.ShowMessage("This media extension is already added.");
-                    }
-                }
-                else
-                {
-                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid media extension before adding.");
-                }
-            });
-        }
-
-        public RelayCommand<object> RemoveMediaExtension
-        {
-            get => new RelayCommand<object>((a) =>
-            {
-                if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
-                {
-                    string extension = Settings.MediaExtensionsInput.Trim().ToLowerInvariant();
-                    if (!extension.StartsWith("."))
-                    {
-                        extension = "." + extension;
-                    }
-
-                    if (Settings.MediaExtensions.Contains(extension))
-                    {
-                        Settings.MediaExtensions.Remove(extension);
-                    }
-                    else
-                    {
-                        plugin.PlayniteApi.Dialogs.ShowMessage("This media extension is not in the list.");
-                    }
-                }
-                else
-                {
-                    plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid media extension to remove.");
-                }
-            });
-        }
-
-        public RelayCommand<object> RestoreDefaultMediaExtension
-        {
-            get => new RelayCommand<object>((a) =>
-            {
-                Settings.MediaExtensions = new ObservableCollection<string> { ".jpg", ".jpeg", ".png", ".bmp", ".gif",
-                    ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm" };
-                logger.Info("Restored default media extensions.");
-            });
+                ".jpg", ".jpeg", ".png", ".bmp", ".gif",
+                ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"
+            };
+            logger.Info("Restored default media extensions.");
         }
 
         public void BeginEdit()
