@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,6 +21,22 @@ namespace SortMyClips
         public SortMyClipsSettingsView()
         {
             InitializeComponent();
+        }
+        
+        private void TextChange_IsValidPath(object sender, TextChangedEventArgs e)
+        {
+            if (sender is TextBox textBox)
+            {
+                string path = textBox.Text;
+                if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
+                {
+                    textBox.BorderBrush = Brushes.LightGreen;
+                }
+                else
+                {
+                    textBox.BorderBrush = Brushes.LightCoral;
+                }
+            }
         }
     }
 }
