@@ -121,6 +121,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <Button Grid.Row="3"
+                            Margin ="0 5 0 0"
                             Content="{DynamicResource Settings_ClearUnsortedPathsButton}"
                             Command="{Binding ClearUnsortedPaths}" />
                 </Grid>
@@ -161,11 +162,13 @@
                                  BorderThickness="2">
                         </TextBox>
                         <Button Grid.Column="1"
+                                Margin="5 0 0 0"
                                 Content="Add"
                                 Command="{Binding AddMediaExtension}" />
                     </Grid>
-
-                    <ListBox Grid.Row="1" ItemsSource="{Binding Path=Settings.MediaExtensions}">
+                    <ListBox Grid.Row="1"
+                             Margin="0 5 0 0"
+                             ItemsSource="{Binding Path=Settings.MediaExtensions}">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <Grid>
@@ -186,6 +189,7 @@
                         </ListBox.ItemTemplate>
                     </ListBox>
                     <Button Grid.Row="2"
+                            Margin ="0 5 0 0"
                             Content="{DynamicResource Settings_ResetMediaExtensionsButton}"
                             Command="{Binding ResetMediaExtensions}" />
                 </Grid>
