@@ -27,7 +27,7 @@ namespace SortMyClips
         {
             if (sender is TextBox textBox)
             {
-                string path = textBox.Text;
+                var path = textBox.Text;
                 if (!string.IsNullOrEmpty(path) && Directory.Exists(path))
                 {
                     textBox.BorderBrush = Brushes.LightGreen;

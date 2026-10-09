@@ -7,98 +7,207 @@
              mc:Ignorable="d"
              d:DesignHeight="400" d:DesignWidth="600"
              d:DataContext="{d:DesignInstance Type=sortMyClips:SortMyClipsSettingsViewModel, IsDesignTimeCreatable=False}">
-    <StackPanel Margin="10">
-        <TextBlock Text="{DynamicResource Settings_SortedPathText}"
-                   Margin="0 0 0 5" 
-                   FontWeight="Bold"/>
-        <StackPanel Margin="10 0 0 10">
-            <Grid Height="30"
-                  VerticalAlignment="Top">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+    <TabControl>
+        <TabItem Header="{DynamicResource Settings_PathsTabHeader}">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0"
+                           Text="{DynamicResource Settings_SortedPathText}"
+                           Margin="0 0 0 5"
+                           FontWeight="Bold"
+                           FontSize="16" />
+                <StackPanel Grid.Row="1"
+                            Margin="10 0 0 10">
+                    <Grid Height="30"
+                          VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
 
-                <TextBox Grid.Column="0"
-                         Text="{Binding Path=Settings.SortedPath,
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding Path=Settings.SortedPath,
                      UpdateSourceTrigger=PropertyChanged}"
-                         TextChanged="TextChange_IsValidPath"
-                         Margin="0 0 10 0"
-                         BorderThickness="2">
-                </TextBox>
-                <Button Grid.Column="1"
-                        Content="🗁"
-                        Command="{Binding BrowseSortedFolder}"
-                        HorizontalAlignment="Right" />
-            </Grid>
-        </StackPanel>
-        
-        <Separator/>
+                                 TextChanged="TextChange_IsValidPath"
+                                 Margin="0 0 10 0"
+                                 BorderThickness="2">
+                        </TextBox>
+                        <Button Grid.Column="1"
+                                Content="🗁"
+                                Command="{Binding BrowseSortedFolder}"
+                                HorizontalAlignment="Right" />
+                    </Grid>
+                </StackPanel>
 
-        <TextBlock Text="{DynamicResource Settings_AddUnsortedPathText}"
-                   Margin="0 10 0 5" 
-                   FontWeight="Bold"/>
-        <StackPanel Margin="10 0 0 0">
-            <Grid Margin="0 0 0 5">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
-                <TextBlock Text="{DynamicResource Settings_PreconfiguredPathsText}"
-                           Grid.Column="0"
-                           VerticalAlignment="Center" />
-                <Button Grid.Column="1"
-                        Content="Steam"
-                        Margin="10 0 0 0"
-                        Command="{Binding AddSteamPaths}" />
-            </Grid>
-            <Grid Height="30"
-                  VerticalAlignment="Top">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="*" />
-                    <ColumnDefinition Width="Auto" />
-                    <ColumnDefinition Width="Auto" />
-                </Grid.ColumnDefinitions>
+                <Separator Grid.Row="2"/>
 
-                <TextBox Grid.Column="0"
-                         Text="{Binding Path=Settings.UnsortedPathInput,
+                <TextBlock Grid.Row="3"
+                           Text="{DynamicResource Settings_AddUnsortedPathText}"
+                           Margin="0 10 0 5"
+                           FontWeight="Bold"
+                           FontSize="16" />
+                <Grid Grid.Row="4"
+                      Margin="10 0 0 0">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Margin="0 0 0 5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{DynamicResource Settings_PreconfiguredPathsText}"
+                                   Grid.Column="0"
+                                   VerticalAlignment="Center" />
+                        <Button Grid.Column="1"
+                                Content="Steam"
+                                Margin="10 0 0 0"
+                                Command="{Binding AddSteamPaths}" />
+                    </Grid>
+                    <Grid Grid.Row="1"
+                          Height="30"
+                          VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding Path=Settings.UnsortedPathInput,
                      UpdateSourceTrigger=PropertyChanged}"
-                         TextChanged="TextChange_IsValidPath"
-                         Margin="0 0 10 0"
-                         BorderThickness="2">
-                </TextBox>
-                <Button Grid.Column="1"
-                        Content="🗁"
-                        Command="{Binding BrowseUnsortedFolder}"
-                        HorizontalAlignment="Right" />
-                <Button Grid.Column="2"
-                        Margin="10 0 0 0"
-                        Content="Add"
-                        Command="{Binding AddUnsortedFolder}" />
-            </Grid>
+                                 TextChanged="TextChange_IsValidPath"
+                                 Margin="0 0 10 0"
+                                 BorderThickness="2">
+                        </TextBox>
+                        <Button Grid.Column="1"
+                                Content="🗁"
+                                Command="{Binding BrowseUnsortedFolder}"
+                                HorizontalAlignment="Right" />
+                        <Button Grid.Column="2"
+                                Margin="10 0 0 0"
+                                Content="Add"
+                                Command="{Binding AddUnsortedFolder}" />
+                    </Grid>
 
-            <ListBox ItemsSource="{Binding Path=Settings.UnsortedPaths}"
-                     Margin="0 10 0 0">
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Grid>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="*" />
-                                <ColumnDefinition Width="Auto" />
-                            </Grid.ColumnDefinitions>
-                            <TextBlock Grid.Column="0"
-                                       Text="{Binding}"
-                                       VerticalAlignment="Center" />
-                            <Button Grid.Column="1"
-                                    Content="X"
-                                    Command="{Binding DataContext.RemoveUnsortedFolder, RelativeSource={RelativeSource AncestorType=UserControl}}"
-                                    CommandParameter="{Binding}" />
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-            <Button Content="{DynamicResource Settings_ClearUnsortedPathsButton}"
-                    Command="{Binding ClearUnsortedPaths}" />
-        </StackPanel>
-    </StackPanel>
+                    <ListBox Grid.Row="2"
+                             ItemsSource="{Binding Path=Settings.UnsortedPaths}"
+                             Margin="0 10 0 0">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding}"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="1"
+                                            Content="X"
+                                            Command="{Binding DataContext.RemoveUnsortedFolder, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="3"
+                            Content="{DynamicResource Settings_ClearUnsortedPathsButton}"
+                            Command="{Binding ClearUnsortedPaths}" />
+                </Grid>
+            </Grid>
+        </TabItem>
+
+        <TabItem Header="{DynamicResource Settings_MediaExtensionsTabHeader}">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0"
+                           Text="Add media file extensions (will be sorted without confirmation):"
+                           TextWrapping="Wrap"
+                           Margin="0 0 0 10"
+                           FontWeight="Bold"
+                           FontSize="16" />
+                <Grid Grid.Row="1"
+                      Margin="10 0 0 0"
+                      VerticalAlignment="Stretch">
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                        <RowDefinition Height="Auto" />
+                    </Grid.RowDefinitions>
+                    <Grid Height="30"
+                          Grid.Row="0"
+                          VerticalAlignment="Top">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding Path=Settings.MediaExtensionsInput,
+                     UpdateSourceTrigger=PropertyChanged}"
+                                 BorderThickness="2">
+                        </TextBox>
+                        <Button Grid.Column="1"
+                                Content="Add"
+                                Command="{Binding AddMediaExtension}" />
+                    </Grid>
+
+                    <ListBox Grid.Row="1" ItemsSource="{Binding Path=Settings.MediaExtensions}">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding}"
+                                               VerticalAlignment="Center" />
+                                    <Button Grid.Column="1"
+                                            Content="X"
+                                            Command="{Binding DataContext.RemoveMediaExtension, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            VerticalAlignment="Stretch" />
+                                </Grid>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    <Button Grid.Row="2"
+                            Content="{DynamicResource Settings_ResetMediaExtensionsButton}"
+                            Command="{Binding ResetMediaExtensions}" />
+                </Grid>
+            </Grid>
+        </TabItem>
+
+        <TabItem Header="{DynamicResource Settings_MiscTabHeader}">
+            <Grid Margin="10">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+                <CheckBox Grid.Row="0"
+                          Content="{DynamicResource Settings_CopyModeText}"
+                          IsChecked="{Binding Settings.FileModeCopy,
+                          UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"
+                          Margin="0,0,0,10" />
+                <CheckBox Grid.Row="1"
+                          Content="{DynamicResource Settings_NotificationOnMoveText}"
+                          IsChecked="{Binding Settings.DisplayAmountMoved,
+                          UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" />
+            </Grid>
+        </TabItem>
+    </TabControl>
 </UserControl>

@@ -45,21 +45,17 @@ namespace SortMyClips
             set => SetValue(ref _fileModeCopy, value);
         }
 
-        private string _steamPath =
+        [JsonIgnore] private string _steamPath =
             (Registry.GetValue(@"HKEY_CURRENT_USER\SOFTWARE\Valve\Steam", "SteamPath", null) as string);
 
+        [JsonIgnore]
         public string SteamPath
         {
             get => _steamPath;
             set => SetValue(ref _steamPath, value);
         }
 
-        private ObservableCollection<string> _mediaExtensions =
-            new ObservableCollection<string>
-            {
-                ".jpg", ".jpeg", ".png", ".bmp", ".gif", ".mp4", ".avi", ".mov", ".wmv",
-                ".flv", ".mkv", ".webm"
-            };
+        private ObservableCollection<string> _mediaExtensions = new ObservableCollection<string>();
 
         public ObservableCollection<string> MediaExtensions
         {
@@ -128,20 +124,22 @@ namespace SortMyClips
             if (savedSettings != null)
             {
                 Settings = savedSettings;
+                Settings.MediaExtensions = Settings.MediaExtensions ?? GetDefaultMediaExtensions();
             }
             else
             {
                 Settings = new SortMyClipsSettings();
+                Settings.MediaExtensions = GetDefaultMediaExtensions();
             }
 
             BrowseUnsortedFolder = new RelayCommand<object>(_ => BrowseUnsortedFolderImpl());
             AddUnsortedFolder = new RelayCommand<object>(_ => AddUnsortedFolderImpl());
-            RemoveUnsortedFolder = new RelayCommand<object>(path => RemoveUnsortedFolderImpl(path));
+            RemoveUnsortedFolder = new RelayCommand<object>(RemoveUnsortedFolderImpl);
             BrowseSortedFolder = new RelayCommand<object>(_ => BrowseSortedFolderImpl());
             AddSteamPaths = new RelayCommand<object>(_ => AddSteamPathsImpl());
             ClearUnsortedPaths = new RelayCommand<object>(_ => ClearUnsortedPathsImpl());
             AddMediaExtension = new RelayCommand<object>(_ => AddMediaExtensionImpl());
-            RemoveMediaExtension = new RelayCommand<object>(_ => RemoveMediaExtensionImpl());
+            RemoveMediaExtension = new RelayCommand<object>(RemoveMediaExtensionImpl);
             ResetMediaExtensions = new RelayCommand<object>(_ => ResetMediaExtensionsImpl());
         }
 
@@ -260,6 +258,7 @@ namespace SortMyClips
         {
             Settings.UnsortedPaths.Clear();
             logger.Info("Cleared unsorted paths.");
+            plugin.PlayniteApi.Dialogs.ShowMessage("Cleared unsorted paths.");
         }
 
         private void AddMediaExtensionImpl()
@@ -289,16 +288,10 @@ namespace SortMyClips
             }
         }
 
-        private void RemoveMediaExtensionImpl()
+        private void RemoveMediaExtensionImpl(object parameter)
         {
-            if (!string.IsNullOrWhiteSpace(Settings.MediaExtensionsInput))
+            if (parameter is string extension)
             {
-                string extension = Settings.MediaExtensionsInput.Trim().ToLowerInvariant();
-                if (!extension.StartsWith("."))
-                {
-                    extension = "." + extension;
-                }
-
                 if (Settings.MediaExtensions.Contains(extension))
                 {
                     Settings.MediaExtensions.Remove(extension);
@@ -308,20 +301,22 @@ namespace SortMyClips
                     plugin.PlayniteApi.Dialogs.ShowMessage("This media extension is not in the list.");
                 }
             }
-            else
-            {
-                plugin.PlayniteApi.Dialogs.ShowMessage("Please enter a valid media extension to remove.");
-            }
         }
 
         private void ResetMediaExtensionsImpl()
         {
-            Settings.MediaExtensions = new ObservableCollection<string>
+            Settings.MediaExtensions = GetDefaultMediaExtensions();
+            logger.Info("Restored default media extensions.");
+            plugin.PlayniteApi.Dialogs.ShowMessage("Reset media extensions.");
+        }
+        
+        private static ObservableCollection<string> GetDefaultMediaExtensions()
+        {
+            return new ObservableCollection<string>
             {
                 ".jpg", ".jpeg", ".png", ".bmp", ".gif",
                 ".mp4", ".avi", ".mov", ".wmv", ".flv", ".mkv", ".webm"
             };
-            logger.Info("Restored default media extensions.");
         }
 
         public void BeginEdit()
